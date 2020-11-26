@@ -53,10 +53,10 @@ const callback2 = function (event) {
     }
 
     if (mask & Inotify.IN_CLOSE_WRITE) {
-        console.log(type + 'was accessed in recordings-merged');
-        console.log(type, type.split(' '));
+        // console.log(type + 'was accessed in recordings-merged');
+        // console.log(type, type.split(' '));
         const fileBaseName = type.split(' ')[type.split(' ').length - 2];
-        console.log(fileBaseName, "fileBasename");
+        // console.log(fileBaseName, "fileBasename");
         if (fileBaseName.startsWith('user')) {
             console.log('USER');
             const userData = _.split(fileBaseName, '_');
@@ -74,7 +74,7 @@ const callback2 = function (event) {
                 }
             }).then((res) => {
                 console.log(res.data, "calllog data");
-                return combineUserAgentVideos(res.data, 'user', fileBaseName);
+                return combineUserAgentVideos(res.data && res.data.length && res.data[0] || res.data, 'user', fileBaseName);
             }).catch((e) => {
                 console.log(e, "error")
             });
@@ -93,7 +93,7 @@ const callback2 = function (event) {
                     botId,
                 }
             }).then((res) => {
-                return combineUserAgentVideos(res.data, 'agent', fileBaseName);
+                return combineUserAgentVideos(res.data && res.data.length && res.data[0] || res.data, 'agent', fileBaseName);
             }).catch((e) => {
                 console.log(e, "error")
             });
