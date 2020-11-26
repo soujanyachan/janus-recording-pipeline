@@ -73,7 +73,7 @@ const callback2 = function (event) {
                     botId,
                 }
             }).then((res) => {
-                console.log(res.data, "calllog data");
+                console.log(res.data, "calllog data user");
                 return combineUserAgentVideos(res.data && res.data.length && res.data[0] || res.data, 'user', fileBaseName);
             }).catch((e) => {
                 console.log(e, "error")
@@ -93,7 +93,8 @@ const callback2 = function (event) {
                     botId,
                 }
             }).then((res) => {
-                return combineUserAgentVideos(res.data && res.data.length && res.data[0] || res.data, 'agent', fileBaseName);
+				console.log(res.data, "calllog data agent");
+				return combineUserAgentVideos(res.data && res.data.length && res.data[0] || res.data, 'agent', fileBaseName);
             }).catch((e) => {
                 console.log(e, "error")
             });
@@ -214,7 +215,7 @@ var home_watch_descriptor = inotify.addWatch(home_dir);
 var home_dir_2 = {
     path: './recordings-merged',
     watch_for: Inotify.IN_ALL_EVENTS,
-    callback: callback2
+    callback: setTimeout(callback2, 2000)
 };
 
 var home_watch_descriptor_2 = inotify.addWatch(home_dir_2);
