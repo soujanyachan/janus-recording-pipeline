@@ -215,7 +215,7 @@ var home_watch_descriptor = inotify.addWatch(home_dir);
 var home_dir_2 = {
     path: './recordings-merged',
     watch_for: Inotify.IN_ALL_EVENTS,
-    callback: setTimeout(callback2, 2000)
+    callback: callback2
 };
 
 var home_watch_descriptor_2 = inotify.addWatch(home_dir_2);
