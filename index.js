@@ -55,7 +55,7 @@ const callback2 = function (event) {
     if (mask & Inotify.IN_CLOSE_WRITE) {
         console.log(type + 'was accessed in recordings-merged');
         console.log(type, type.split(' '));
-        const fileBaseName = type.split(' ')[type.split(' ').length - 1];
+        const fileBaseName = type.split(' ')[type.split(' ').length - 2];
         console.log(fileBaseName, "fileBasename");
         if (fileBaseName.startsWith('user')) {
             console.log('USER');
