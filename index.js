@@ -12,55 +12,59 @@ const ticketPairs = {};
 
 const callback2 = function (event) {
 	console.log(event, "event");
+	const parseFileBaseName = (userType, fileBaseName) => {
+		let agentFileName, userFileName;
+		if (userType === 'agent') {
+			agentFileName = fileBaseName;
+			console.log("inside agent");
+			const agentData = _.split(fileBaseName, '_');
+			const botId = agentData[1];
+			const agentId = agentData[2];
+			const agentSessionId = agentData[3];
+			const agentHandleId = agentData[4];
+			userFileName = `user_${callLog.ticketId}_${botId}_${callLog.uid}_${callLog.userSessionId}_${callLog.userHandleId}`;
+			// construct the other file name using call log and find it in the directory
+			console.log(userFileName, "userFileName");
+		} else if (userType === 'user') {
+			userFileName = fileBaseName;
+			console.log("inside user");
+			const userData = _.split(fileBaseName, '_');
+			const ticketId = userData[1];
+			const botId = userData[2];
+			const uid = userData[3];
+			const userSessionId = userData[5];
+			const userHandleId = userData[6];
+			agentFileName = `agent_${botId}_${callLog.agentId}_${callLog.agentSessionId}_${callLog.agentHandleId}`;
+			console.log(agentFileName, "agentFileName");
+		}
+		return [agentFileName, userFileName];
+	}
+
 	const combineUserAgentVideos = (callLog, userType, fileBaseName) => {
 		if (callLog.userRecordingId && callLog.agentRecordingId) {
 			console.log("inside combineuseragentvideos", fileBaseName);
 			// find the other file.
-			let agentVideo, userVideo, outputFile = `output_file_${callLog.ticketId}_${callLog._id}`;
-			if (userType === 'agent') {
-				agentVideo = fileBaseName;
-				console.log("inside agent");
-				const agentData = _.split(fileBaseName, '_');
-				const botId = agentData[1];
-				const agentId = agentData[2];
-				const agentSessionId = agentData[3];
-				const agentHandleId = agentData[4];
-				const userFileName = `user_${callLog.ticketId}_${botId}_${callLog.uid}_${callLog.userSessionId}_${callLog.userHandleId}`;
-				// construct the other file name using call log and find it in the directory
-				console.log(userFileName, "userFileName");
-				fs.readdir('./recordings-merged', (err, files) => {
-					let fileList = files.filter(fn => fn.startsWith(userFileName));
-					console.log(fileList, "filelist user");
-					fileList = fileList.sort();
-					userVideo = fileList[fileList.length - 1];
-					console.log(agentVideo, userVideo, '1');
-				});
-			} else if (userType === 'user') {
-				userName = fileBaseName;
-				console.log("inside user");
-				const userData = _.split(fileBaseName, '_');
-				const ticketId = userData[1];
-				const botId = userData[2];
-				const uid = userData[3];
-				const userSessionId = userData[5];
-				const userHandleId = userData[6];
-				const agentFileName = `agent_${botId}_${callLog.agentId}_${callLog.agentSessionId}_${callLog.agentHandleId}`;
-				console.log(agentFileName, "agentFileName");
-				fs.readdir('./recordings-merged', (err, files) => {
-					let fileList = files.filter(fn => fn.startsWith(agentFileName));
-					console.log(fileList, "fileList");
-					fileList = fileList.sort();
-					agentVideo = fileList[fileList.length - 1];
-					console.log(agentVideo, userVideo, '2');
-				});
-			}
-			console.log("after if else");
-			//on finding both files, run
-			//exec(`ffmpeg -i ${agentVideo} -i ${userVideo
-			//} -filter_complex "[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix" ${outputFile}`,
-			//	(stdout, res_multiple_combine, stderr) => {
-			//		console.log(res_multiple_combine)
-			//	});
+			let outputFile = `output_file_${callLog.ticketId}_${callLog._id}`;
+			const [agentFileName, userFileName] = parseFileBaseName(userType, fileBaseName);
+
+			fs.readdir('./recordings-merged', (err, files) => {
+				let userVideo, agentVideo;
+				let fileListUser = files.filter(fn => fn.startsWith(userFileName));
+				console.log(fileListUser, "filelist user");
+				fileListUser = fileListUser.sort();
+				userVideo = fileListUser[fileListUser.length - 1];
+				let fileListAgent = files.filter(fn => fn.startsWith(agentFileName));
+				console.log(fileListAgent, "fileList");
+				fileListAgent = fileListAgent.sort();
+				agentVideo = fileListAgent[fileListAgent.length - 1];
+				console.log(agentVideo, userVideo, '1');
+				//on finding both files, run
+				exec(`ffmpeg -i ${agentVideo} -i ${userVideo
+				} -filter_complex "[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix" ${outputFile}`,
+					(stdout, res_multiple_combine, stderr) => {
+						console.log(res_multiple_combine)
+					});
+			});
 		}
 	};
 	var mask = event.mask;
