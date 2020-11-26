@@ -1,3 +1,4 @@
+// xBN1t17SXcKY
 const axios = require('axios');
 const {exec} = require('child_process');
 const _ = require('lodash');
@@ -110,7 +111,7 @@ var callback = function (event) {
     // the purpose of this hell of 'if' statements is only illustrative.
 
     if (mask & Inotify.IN_CLOSE_WRITE) {
-        console.log(type + ' opened for writing was closed ');
+        // console.log(type + ' opened for writing was closed ');
         const fileTokens = _.split(type, '-');
         fileTokens[0] = (fileTokens[0].split(' ')[fileTokens[0].split(' ').length - 1]);
         fileTokens.pop();
@@ -120,19 +121,19 @@ var callback = function (event) {
         } else {
             //TODO: need to create the recordings-pp and recordings-merged dirs if not available
             exec(`janus-pp-rec ./recordings/${fileBaseName}-video.mjr ./recordings-pp/${fileBaseName}-video.webm`, (err, res_video, stderr) => {
-                console.log(res_video, "res_video");
+                // console.log(res_video, "res_video");
                 exec(`janus-pp-rec ./recordings/${fileBaseName}-audio.mjr ./recordings-pp/${fileBaseName}-audio.opus`, (err, res_audio, stderr) => {
-                    console.log(res_audio, "res_audio");
+                    // console.log(res_audio, "res_audio");
                     exec(`ffmpeg -i ./recordings-pp/${fileBaseName}-audio.opus -i ./recordings-pp/${fileBaseName}-video.webm  -c:v copy -c:a opus -strict experimental ./recordings-merged/${fileBaseName}.webm`, (err, res_merge, stderr) => {
-                        console.log(res_merge, "res_merge");
+                        // console.log(res_merge, "res_merge");
                         fs.readFile(`./recordings-merged/${fileBaseName}.webm`, (err, data) => {
                             if (!err) {
-                                console.log('got data from file', data);
+                                // console.log('got data from file', data);
                                 azureUpload.createSasUrl(data, `uploaded-${fileBaseName}.webm`).then((url) => {
-                                    console.log(url);
-                                    console.log('filebasename', fileBaseName, avPairs[fileBaseName]);
+                                    // console.log(url);
+                                    // console.log('filebasename', fileBaseName, avPairs[fileBaseName]);
                                     if (fileBaseName.startsWith('user')) {
-                                        console.log('USER');
+                                        // console.log('USER');
                                         try {
                                             const userData = _.split(fileBaseName, '_');
                                             const ticketId = userData[1];
@@ -156,7 +157,7 @@ var callback = function (event) {
                                                     url
                                                 }
                                             }).then((res) => {
-                                                console.log(res.data, "calllog data");
+                                                // console.log(res.data, "calllog data");
                                             }).catch((e) => {
                                                 console.log(e, "error")
                                             });
@@ -165,7 +166,7 @@ var callback = function (event) {
                                         }
                                     }
                                     if (fileBaseName.startsWith('agent')) {
-                                        console.log('AGENT');
+                                        // console.log('AGENT');
                                         try {
                                             const agentData = _.split(fileBaseName, '_');
                                             const botId = agentData[1];
@@ -183,7 +184,7 @@ var callback = function (event) {
                                                     url
                                                 }
                                             }).then((res) => {
-                                                console.log(res.data, "calllog data");
+                                                // console.log(res.data, "calllog data");
                                             }).catch((e) => {
                                                 console.log(e, "error")
                                             });
