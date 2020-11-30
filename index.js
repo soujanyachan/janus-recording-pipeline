@@ -1,14 +1,28 @@
 // xBN1t17SXcKY
 const axios = require('axios');
 const {exec} = require('child_process');
+const express = require('express');
 const _ = require('lodash');
 const fs = require('fs');
 const azureUpload = require('./upload.js');
-var Inotify = require('inotify').Inotify;
-var inotify = new Inotify(); //persistent by default, new Inotify(false) //no persistent
+const Inotify = require('inotify').Inotify;
+const inotify = new Inotify(); //persistent by default, new Inotify(false) //no persistent
 
 const avPairs = {};
 const ticketPairs = {};
+
+const app = express();
+
+app.get('/list_recordings', (req, res) => {
+	exec(`ls -la /recording-data`, (stdout, result, stderr) => {
+			console.log(stdout, "stdout");
+			console.log(result, "result");
+			console.log("done with exec");
+	});
+	res.send(200);
+});
+
+app.listen(9999);
 
 const callback2 = function (event) {
 	const parseFileBaseName = (userType, fileBaseName, callLog) => {
@@ -69,8 +83,8 @@ const callback2 = function (event) {
 			});
 		}
 	};
-	var mask = event.mask;
-	var type = mask & Inotify.IN_ISDIR ? 'directory ' : 'file ';
+	const mask = event.mask;
+	let type = mask & Inotify.IN_ISDIR ? 'directory ' : 'file ';
 	if (event.name) {
 		type += ' ' + event.name + ' ';
 	} else {
@@ -129,9 +143,9 @@ const callback2 = function (event) {
 	}
 }
 
-var callback = function (event) {
-	var mask = event.mask;
-	var type = mask & Inotify.IN_ISDIR ? 'directory ' : 'file ';
+const callback = function (event) {
+	const mask = event.mask;
+	let type = mask & Inotify.IN_ISDIR ? 'directory ' : 'file ';
 	if (event.name) {
 		type += ' ' + event.name + ' ';
 	} else {
@@ -232,19 +246,19 @@ var callback = function (event) {
 		}
 	}
 };
-var home_dir = {
+const home_dir = {
 	path: './recordings',
 	watch_for: Inotify.IN_ALL_EVENTS,
 	callback: callback
 };
 
-var home_watch_descriptor = inotify.addWatch(home_dir);
+const home_watch_descriptor = inotify.addWatch(home_dir);
 
-var home_dir_2 = {
+const home_dir_2 = {
 	path: './recordings-merged',
 	watch_for: Inotify.IN_CLOSE_WRITE,
 	callback: (event) => setTimeout(() => callback2(event), 5000)
 };
 
-var home_watch_descriptor_2 = inotify.addWatch(home_dir_2);
+const home_watch_descriptor_2 = inotify.addWatch(home_dir_2);
 

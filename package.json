@@ -11,6 +11,7 @@
   "dependencies": {
     "axios": "^0.21.0",
     "azure-storage": "^2.10.3",
+    "express": "^4.17.1",
     "inotify": "^1.4.6",
     "lodash": "^4.17.20",
     "streamifier": "^0.1.1"
