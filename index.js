@@ -11,8 +11,7 @@ const avPairs = {};
 const ticketPairs = {};
 
 const callback2 = function (event) {
-	console.log(event, "event");
-	const parseFileBaseName = (userType, fileBaseName) => {
+	const parseFileBaseName = (userType, fileBaseName, callLog) => {
 		let agentFileName, userFileName;
 		if (userType === 'agent') {
 			agentFileName = fileBaseName;
@@ -44,26 +43,29 @@ const callback2 = function (event) {
 		if (callLog.userRecordingId && callLog.agentRecordingId) {
 			console.log("inside combineuseragentvideos", fileBaseName);
 			// find the other file.
-			let outputFile = `output_file_${callLog.ticketId}_${callLog._id}`;
-			const [agentFileName, userFileName] = parseFileBaseName(userType, fileBaseName);
+			let outputFile = `output_file_${callLog.ticketId}_${callLog._id}.webm`;
+			const [agentFileName, userFileName] = parseFileBaseName(userType, fileBaseName, callLog);
 
 			fs.readdir('./recordings-merged', (err, files) => {
 				let userVideo, agentVideo;
 				let fileListUser = files.filter(fn => fn.startsWith(userFileName));
-				console.log(fileListUser, "filelist user");
 				fileListUser = fileListUser.sort();
 				userVideo = fileListUser[fileListUser.length - 1];
 				let fileListAgent = files.filter(fn => fn.startsWith(agentFileName));
-				console.log(fileListAgent, "fileList");
 				fileListAgent = fileListAgent.sort();
 				agentVideo = fileListAgent[fileListAgent.length - 1];
 				console.log(agentVideo, userVideo, '1');
 				//on finding both files, run
-				exec(`ffmpeg -i ${agentVideo} -i ${userVideo
+				console.log("running exec");
+				if (agentVideo && userVideo) {
+				exec(`ffmpeg -i ./recordings-merged/${agentVideo} -i ./recordings-merged/${userVideo
 				} -filter_complex "[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix" ${outputFile}`,
 					(stdout, res_multiple_combine, stderr) => {
+						console.log(stdout, "stdout");
 						console.log(res_multiple_combine)
+						console.log("done with exec");
 					});
+				}
 			});
 		}
 	};
@@ -96,7 +98,7 @@ const callback2 = function (event) {
 					botId,
 				}
 			}).then((res) => {
-				//console.log(res.data, "calllog data user");
+				console.log(res.data, "calllog data user");
 				//console.log("res.data", res.data.data, res.data.data[0]);
 				return combineUserAgentVideos(res.data.data[0], 'user', fileBaseName);
 			}).catch((e) => {
@@ -117,7 +119,7 @@ const callback2 = function (event) {
 					botId,
 				}
 			}).then((res) => {
-				//console.log(res.data, "calllog data agent");
+				console.log(res.data, "calllog data agent");
 				//console.log("res.data", res.data, res.data.data[0]);
 				return combineUserAgentVideos(res.data.data[0] || res.data, 'agent', fileBaseName);
 			}).catch((e) => {
@@ -155,12 +157,13 @@ var callback = function (event) {
 						// console.log(res_merge, "res_merge");
 						fs.readFile(`./recordings-merged/${fileBaseName}.webm`, (err, data) => {
 							if (!err) {
+								// bull - executor
 								// console.log('got data from file', data);
 								azureUpload.createSasUrl(data, `uploaded-${fileBaseName}.webm`).then((url) => {
 									// console.log(url);
 									// console.log('filebasename', fileBaseName, avPairs[fileBaseName]);
 									if (fileBaseName.startsWith('user')) {
-										// console.log('USER');
+										 console.log('USER r');
 										try {
 											const userData = _.split(fileBaseName, '_');
 											const ticketId = userData[1];
@@ -184,7 +187,7 @@ var callback = function (event) {
 													url
 												}
 											}).then((res) => {
-												// console.log(res.data, "calllog data");
+												console.log(res.data, "rec user calllog data");
 											}).catch((e) => {
 												console.log(e, "error")
 											});
@@ -193,7 +196,7 @@ var callback = function (event) {
 										}
 									}
 									if (fileBaseName.startsWith('agent')) {
-										// console.log('AGENT');
+										console.log('AGENT');
 										try {
 											const agentData = _.split(fileBaseName, '_');
 											const botId = agentData[1];
@@ -211,7 +214,7 @@ var callback = function (event) {
 													url
 												}
 											}).then((res) => {
-												// console.log(res.data, "calllog data");
+												 console.log(res.data, "agent rec calllog data");
 											}).catch((e) => {
 												console.log(e, "error")
 											});
