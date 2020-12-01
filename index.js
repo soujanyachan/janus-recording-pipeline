@@ -1,4 +1,3 @@
-// xBN1t17SXcKY
 const axios = require('axios');
 const {exec} = require('child_process');
 const express = require('express');
@@ -21,7 +20,7 @@ app.get('/list_recordings', (req, res) => {
 	});
 	res.send(200);
 });
-
+console.log('listening on port 9999');
 app.listen(9999);
 
 const callback2 = function (event) {
