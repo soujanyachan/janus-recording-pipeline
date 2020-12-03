@@ -3,54 +3,44 @@ const {exec} = require('child_process');
 const express = require('express');
 const _ = require('lodash');
 const fs = require('fs');
+const chokidar = require('chokidar');
 const azureUpload = require('./upload.js');
-// const Inotify = require('inotify').Inotify;
-// const inotify = new Inotify(); //persistent by default, new Inotify(false) //no persistent
 
 const avPairs = {};
 const ticketPairs = {};
 
 const app = express();
 
-app.get('/list_recordings', (req, res) => {
-	exec(`ls -la /recording-data`, (stdout, result, stderr) => {
-			console.log(stdout, "stdout");
-			console.log(result, "result");
-			console.log("done with exec");
-	});
-	res.send(200);
+app.get('/list-recordings', (req, res) => {
+    exec(`ls -la /recording-data`, (stdout, result, stderr) => {
+        console.log(stdout, "stdout");
+        console.log(result, "result");
+        console.log("done with exec");
+    });
+    res.sendStatus(200);
+});
+
+const createFileBaseNameFromCallLog = (callLog) => {
+    const {botId, uid, ticketId, userSessionId, agentId, userHandleId, agentSessionId, agentHandleId} = callLog;
+    const userFileName = `user_${ticketId}_${botId}_${uid}_${userSessionId}_${userHandleId}`;
+    const agentFileName = `agent_${botId}_${agentId}_${agentSessionId}_${agentHandleId}`;
+    return [agentFileName, userFileName];
+};
+
+// find agent file name and user file name and return failure if file size is 0
+// try using chokidar for this
+
+app.post('/process-recordings', (req, res) => {
+    const callLog = req.body.callLog;
+	const [agentFileName, userFileName] = createFileBaseNameFromCallLog(callLog);
+	// else merge audio and video of agent and user
+	// merge videos of agent and user
+
 });
 console.log('listening on port 9999');
 app.listen(9999);
 
 // const callback2 = function (event) {
-// 	const parseFileBaseName = (userType, fileBaseName, callLog) => {
-// 		let agentFileName, userFileName;
-// 		if (userType === 'agent') {
-// 			agentFileName = fileBaseName;
-// 			console.log("inside agent");
-// 			const agentData = _.split(fileBaseName, '_');
-// 			const botId = agentData[1];
-// 			const agentId = agentData[2];
-// 			const agentSessionId = agentData[3];
-// 			const agentHandleId = agentData[4];
-// 			userFileName = `user_${callLog.ticketId}_${botId}_${callLog.uid}_${callLog.userSessionId}_${callLog.userHandleId}`;
-// 			// construct the other file name using call log and find it in the directory
-// 			console.log(userFileName, "userFileName");
-// 		} else if (userType === 'user') {
-// 			userFileName = fileBaseName;
-// 			console.log("inside user");
-// 			const userData = _.split(fileBaseName, '_');
-// 			const ticketId = userData[1];
-// 			const botId = userData[2];
-// 			const uid = userData[3];
-// 			const userSessionId = userData[5];
-// 			const userHandleId = userData[6];
-// 			agentFileName = `agent_${botId}_${callLog.agentId}_${callLog.agentSessionId}_${callLog.agentHandleId}`;
-// 			console.log(agentFileName, "agentFileName");
-// 		}
-// 		return [agentFileName, userFileName];
-// 	}
 //
 // 	const combineUserAgentVideos = (callLog, userType, fileBaseName) => {
 // 		if (callLog.userRecordingId && callLog.agentRecordingId) {
