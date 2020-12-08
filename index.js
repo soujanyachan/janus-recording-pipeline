@@ -20,7 +20,7 @@ app.get('/list-recordings', (req, res) => {
 
 const createFileBaseNameFromCallLog = (callLog) => {
     const {botId, uid, ticketId, userSessionId, agentId, userHandleId, agentSessionId, agentHandleId} = callLog;
-    const userFileName = `user_${ticketId}_${botId}_${uid}_${userSessionId}_${userHandleId}`;
+    const userFileName = `user_${ticketId}_${botId}_${uid}`; //_${userSessionId}_${userHandleId}`;
     const agentFileName = `agent_${botId}_${agentId}_${agentSessionId}_${agentHandleId}`;
     return [agentFileName, userFileName];
 };
