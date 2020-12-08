@@ -3,12 +3,12 @@ const {exec} = require('child_process');
 const express = require('express');
 const _ = require('lodash');
 const fs = require('fs');
-const chokidar = require('chokidar');
+const fluent = require('fluent-ffmpeg');
 const azureUpload = require('./upload.js');
 
-const avPairs = {};
-const ticketPairs = {};
-
+// add the recorded calls to a bull queue and add them when call is hungup.
+// once the audio and the video are converted, send to another queue to merge
+// Something to use when events are received.
 const app = express();
 
 app.get('/list-recordings', (req, res) => {
@@ -26,6 +26,46 @@ const createFileBaseNameFromCallLog = (callLog) => {
     const agentFileName = `agent_${botId}_${agentId}_${agentSessionId}_${agentHandleId}`;
     return [agentFileName, userFileName];
 };
+
+app.post('/process-recordings', async (req, res) => {
+    try {
+        const callLog = req.body.callLog;
+        if (!callLog) {
+            throw new Error('Calllog required');
+        }
+        // check if all the files are available
+        const [agentFileName, userFileName] = createFileBaseNameFromCallLog(callLog);
+        const files = await fs.readdirSync('/recording-data');
+        console.log(files);
+        const agentFiles = _.filter(files, (x) => x.startsWith(agentFileName));
+        const userFiles = _.filter(files, (x) => x.startsWith(userFileName));
+        console.log(agentFiles, userFiles);
+        // if not return false
+        // else
+        // convert agent video to webm
+        // convert agent audio to opus
+        // convert user video to webm
+        // convert user audio to opus
+        // merge agent
+        // merge user
+        // merge the two videos
+        //
+        res.send({
+            success: true,
+            message: 'Merged the videos',
+            data: {
+                mergedUrl: '',
+                agentVideoUrl: '',
+                userVideoUrl: '',
+            }
+        })
+    } catch (e) {
+        res.send({
+            success: false,
+            message: e.message
+        });
+    }
+});
 
 // find agent file name and user file name and return failure if file size is 0
 // try using chokidar for this
