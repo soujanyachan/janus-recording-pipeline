@@ -44,24 +44,35 @@ app.post('/process-recordings', async (req, res) => {
         const userFiles = _.filter(files, (x) => x.startsWith(userFileName));
         console.log(agentFiles, userFiles);
         // if not return false
-        // else
-        // convert agent video to webm
-        // convert agent audio to opus
-        // convert user video to webm
-        // convert user audio to opus
-        // merge agent
-        // merge user
-        // merge the two videos
-        //
-        res.send({
-            success: true,
-            message: 'Merged the videos',
-            data: {
-                mergedUrl: '',
-                agentVideoUrl: '',
-                userVideoUrl: '',
-            }
-        })
+        if (!agentFiles.length) {
+            throw new Error('Agent video data not found.');
+        } else if (!userFiles.length) {
+            throw new Error('User video not found.');
+        } else {
+            // TODO: pick only most recent if many
+            let agentFileAudio, agentFileVideo;
+            agentFiles.map((x) => {
+                if(x.endsWith('audio.mjr')) agentFileAudio = x;
+                else if(x.endsWith('video.mjr')) agentFileVideo = x;
+            });
+            console.log(agentFileAudio, agentFileVideo);
+            // convert agent video to webm
+            // convert agent audio to opus
+            // convert user video to webm
+            // convert user audio to opus
+            // merge agent
+            // merge user
+            // merge the two videos
+            res.send({
+                success: true,
+                message: 'Merged the videos',
+                data: {
+                    mergedUrl: '',
+                    agentVideoUrl: '',
+                    userVideoUrl: '',
+                }
+            })
+        }
     } catch (e) {
         res.send({
             success: false,
