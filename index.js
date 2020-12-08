@@ -100,7 +100,7 @@ app.post('/process-recordings', async (req, res) => {
                 console.log(finalMergedResult.toString());
                 const finalMergedVideoFileData = await fs.readFileSync(`/recording-final/${callLog._id}.webm`);
                 const finalMergedFileUrl = await azureUpload.createSasUrl(finalMergedVideoFileData, `uploaded-${callLog._id}.webm`);
-
+                console.log(finalMergedFileUrl, agentFileUrl, userFileUrl, "merged urls");
                 res.send({
                     success: true,
                     message: 'Merged the videos',
