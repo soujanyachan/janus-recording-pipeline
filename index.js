@@ -49,14 +49,14 @@ app.post('/process-recordings', async (req, res) => {
             }
         }
         console.log('sending response 1');
-        res.send({
+        res.end({
             success: true,
             message: `started processing the recording ${callLog._id}`,
             data: callLog
         });
     } catch (e) {
         console.log('sending response 2');
-        res.send({
+        res.end({
             success: false,
             message: e.message
         });
