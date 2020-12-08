@@ -1,12 +1,13 @@
 const axios = require('axios');
-const {exec} = require('child_process');
+const {exec, execSync} = require('child_process');
 const express = require('express');
 const _ = require('lodash');
 const fs = require('fs');
-const fluent = require('fluent-ffmpeg');
+const ffmpeg = require('fluent-ffmpeg');
 const azureUpload = require('./upload.js');
 const bodyParser = require('body-parser');
 
+const ffmpegCommand = ffmpeg();
 
 // add the recorded calls to a bull queue and add them when call is hungup.
 // once the audio and the video are converted, send to another queue to merge
@@ -56,12 +57,28 @@ app.post('/process-recordings', async (req, res) => {
                 else if(x.endsWith('video.mjr')) agentFileVideo = x;
             });
             console.log(agentFileAudio, agentFileVideo);
-            // convert agent video to webm
             // convert agent audio to opus
-            // convert user video to webm
-            // convert user audio to opus
+            const agentAudioResult = await execSync(`janus-pp-rec /recording-data/${agentFileAudio} /recording-pp/${agentFileAudio}.opus`);
+            // convert agent video to webm
+            const agentVideoResult = await execSync(`janus-pp-rec /recording-data/${agentFileVideo} /recording-pp/${agentFileVideo}.webm`);
+            console.log(agentAudioResult.toString());
+            console.log(agentVideoResult.toString());
             // merge agent
+
+            let userFileAudio, userFileVideo;
+            userFiles.map((x) => {
+                if(x.endsWith('audio.mjr')) userFileAudio = x;
+                else if(x.endsWith('video.mjr')) userFileVideo = x;
+            });
+            console.log(userFileAudio, userFileVideo);
+            // convert user audio to opus
+            const userAudioResult = await execSync(`janus-pp-rec /recording-data/${userFileAudio} /recording-pp/${userFileAudio}.opus`);
+            // convert user video to webm
+            const userVideoResult = await execSync(`janus-pp-rec /recording-data/${userFileVideo} /recording-pp/${userFileVideo}.webm`);
+            console.log(userAudioResult.toString());
+            console.log(userVideoResult.toString());
             // merge user
+
             // merge the two videos
             res.send({
                 success: true,
