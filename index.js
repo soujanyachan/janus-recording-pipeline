@@ -61,6 +61,7 @@ app.post('/process-recordings', async (req, res) => {
             message: e.message
         });
     }
+    res.end('done');
     if (storageType === 'pvc' && agentFiles && userFiles) {
         const sideBySideMergeAndUrl = async (agentFileName, userFileName, mergedFileName) => {
             await execSync(`ffmpeg -y -acodec libopus -i /recording-merged/${agentFileName}.webm -i /recording-merged/${userFileName
