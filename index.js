@@ -91,7 +91,7 @@ app.post('/process-recordings', async (req, res) => {
                 const agentFileUrl = await mergeAvAndUpload(agentFileAudio, agentFileVideo, agentFileName);
                 const userFileUrl = await mergeAvAndUpload(userFileAudio, userFileVideo, userFileName);
 
-                const finalMergedFileUrl = sideBySideMergeAndUrl(agentFileName, userFileName, callLog._id);
+                const finalMergedFileUrl = await sideBySideMergeAndUrl(agentFileName, userFileName, callLog._id);
                 console.log(finalMergedFileUrl, agentFileUrl, userFileUrl, "merged urls");
 
                 await axios.post('agents-service.services:3000/janus/recording-pipeline-end', {
