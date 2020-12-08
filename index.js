@@ -105,7 +105,7 @@ app.post('/process-recordings', async (req, res) => {
         const finalMergedFileUrl = await sideBySideMergeAndUrl(agentFileName, userFileName, callLog._id);
         console.log(finalMergedFileUrl, agentFileUrl, userFileUrl, "merged urls");
         try {
-            await axios.post('agents-service.services:3000/janus/internal/updateCallLogByCallLogId', {
+            await axios.post('http://agents-service.services:3000/janus/internal/updateCallLogByCallLogId', {
                 callLogId: callLog._id,
                 data: {
                     mergedRecordingUrl: finalMergedFileUrl,
