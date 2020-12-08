@@ -48,12 +48,14 @@ app.post('/process-recordings', async (req, res) => {
                 throw new Error('User video not found.');
             }
         }
+        console.log('sending response 1');
         res.send({
             success: true,
             message: `started processing the recording ${callLog._id}`,
             data: callLog
         });
     } catch (e) {
+        console.log('sending response 2');
         res.send({
             success: false,
             message: e.message
