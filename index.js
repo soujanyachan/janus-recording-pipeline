@@ -95,7 +95,7 @@ app.post('/process-recordings', async (req, res) => {
                 const userFileUrl = await azureUpload.createSasUrl(userMergedVideoFileData, `uploaded-${userFileName}.webm`);
 
                 // merge the two videos
-                const finalMergedResult = await execSync(`ffmpeg -i /recording-merged/${agentFileName}.webm -i /recording-merged/${userFileName
+                const finalMergedResult = await execSync(`ffmpeg -y -acodec libopus -i /recording-merged/${agentFileName}.webm -i /recording-merged/${userFileName
 				}.webm -filter_complex "[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix" /recording-final/${callLog._id}.webm`);
                 console.log(finalMergedResult.toString());
                 const finalMergedVideoFileData = await fs.readFileSync(`/recording-final/${callLog._id}.webm`);
