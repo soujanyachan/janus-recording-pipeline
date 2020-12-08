@@ -72,7 +72,7 @@ app.post('/process-recordings', async (req, res) => {
                 console.log(agentVideoResult.toString());
                 // merge agent
                 console.log('3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333')
-                const agentVideoFinalResult = await execSync(`ffmpeg -acodec libopus -i /recording-pp/${agentFileAudio}.opus -i /recording-pp/${
+                const agentVideoFinalResult = await execSync(`ffmpeg -y -acodec libopus -i /recording-pp/${agentFileAudio}.opus -i /recording-pp/${
                     agentFileVideo}.webm -c:v copy -c:a opus -strict experimental /recording-merged/${agentFileName}.webm`);
                 console.log(agentVideoFinalResult.toString());
 
