@@ -88,7 +88,7 @@ app.post('/process-recordings', async (req, res) => {
                 console.log(userAudioResult.toString());
                 console.log(userVideoResult.toString());
                 // merge user
-                const userVideoFinalResult = await execSync(`ffmpeg -y -acodec libopus -i /recording-pp/${userFileAudio}.opus -i /recordings-pp/${
+                const userVideoFinalResult = await execSync(`ffmpeg -y -acodec libopus -i /recording-pp/${userFileAudio}.opus -i /recording-pp/${
                     userFileVideo}.webm  -c:v copy -c:a opus -strict experimental /recording-merged/${userFileName}.webm`);
                 console.log(userVideoFinalResult.toString());
                 const userMergedVideoFileData = await fs.readFileSync(`/recording-merged/${userFileName}.webm`);
