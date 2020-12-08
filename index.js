@@ -61,34 +61,37 @@ app.post('/process-recordings', async (req, res) => {
                 });
                 console.log(agentFileAudio, agentFileVideo);
                 // convert agent audio to opus
+                console.log('1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111')
                 const agentAudioResult = await execSync(`janus-pp-rec /recording-data/${agentFileAudio} /recording-pp/${
                     agentFileAudio}.opus`);
                 // convert agent video to webm
+                console.log('22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222')
                 const agentVideoResult = await execSync(`janus-pp-rec /recording-data/${agentFileVideo} /recording-pp/${
                     agentFileVideo}.webm`);
                 console.log(agentAudioResult.toString());
                 console.log(agentVideoResult.toString());
                 // merge agent
+                console.log('3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333')
                 const agentVideoFinalResult = await execSync(`ffmpeg -i /recording-pp/${agentFileAudio}.opus -i /recordings-pp/${
                     agentFileVideo}.webm  -c:v copy -c:a opus -strict experimental /recording-merged/${agentFileName}.webm`);
                 console.log(agentVideoFinalResult.toString());
 
-                let userFileAudio, userFileVideo;
-                userFiles.map((x) => {
-                    if (x.endsWith('audio.mjr')) userFileAudio = x;
-                    else if (x.endsWith('video.mjr')) userFileVideo = x;
-                });
-                console.log(userFileAudio, userFileVideo);
-                // convert user audio to opus
-                const userAudioResult = await execSync(`janus-pp-rec /recording-data/${userFileAudio} /recording-pp/${userFileAudio}.opus`);
-                // convert user video to webm
-                const userVideoResult = await execSync(`janus-pp-rec /recording-data/${userFileVideo} /recording-pp/${userFileVideo}.webm`);
-                console.log(userAudioResult.toString());
-                console.log(userVideoResult.toString());
-                // merge user
-                const userVideoFinalResult = await execSync(`ffmpeg -i /recording-pp/${userFileAudio}.opus -i /recordings-pp/${
-                    userFileVideo}.webm  -c:v copy -c:a opus -strict experimental /recording-merged/${userFileName}.webm`);
-                console.log(userVideoFinalResult.toString());
+                // let userFileAudio, userFileVideo;
+                // userFiles.map((x) => {
+                //     if (x.endsWith('audio.mjr')) userFileAudio = x;
+                //     else if (x.endsWith('video.mjr')) userFileVideo = x;
+                // });
+                // console.log(userFileAudio, userFileVideo);
+                // // convert user audio to opus
+                // const userAudioResult = await execSync(`janus-pp-rec /recording-data/${userFileAudio} /recording-pp/${userFileAudio}.opus`);
+                // // convert user video to webm
+                // const userVideoResult = await execSync(`janus-pp-rec /recording-data/${userFileVideo} /recording-pp/${userFileVideo}.webm`);
+                // console.log(userAudioResult.toString());
+                // console.log(userVideoResult.toString());
+                // // merge user
+                // const userVideoFinalResult = await execSync(`ffmpeg -i /recording-pp/${userFileAudio}.opus -i /recordings-pp/${
+                //     userFileVideo}.webm  -c:v copy -c:a opus -strict experimental /recording-merged/${userFileName}.webm`);
+                // console.log(userVideoFinalResult.toString());
                 // merge the two videos
                 res.send({
                     success: true,
