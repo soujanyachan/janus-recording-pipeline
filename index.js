@@ -34,61 +34,75 @@ const createFileBaseNameFromCallLog = (callLog) => {
 app.post('/process-recordings', async (req, res) => {
     try {
         const callLog = req.body.callLog;
+        const storageType = req.body.storageType || 'pvc';
         if (!callLog) {
             throw new Error('Calllog required');
         }
         // check if all the files are available
         const [agentFileName, userFileName] = createFileBaseNameFromCallLog(callLog);
-        const files = await fs.readdirSync('/recording-data');
-        console.log(files);
-        const agentFiles = _.filter(files, (x) => x.startsWith(agentFileName));
-        const userFiles = _.filter(files, (x) => x.startsWith(userFileName));
-        console.log(agentFiles, userFiles);
-        // if not return false
-        if (!agentFiles.length) {
-            throw new Error('Agent video data not found.');
-        } else if (!userFiles.length) {
-            throw new Error('User video not found.');
+        if (storageType === 'pvc') {
+            const files = await fs.readdirSync('/recording-data');
+            console.log(files);
+            const agentFiles = _.filter(files, (x) => x.startsWith(agentFileName));
+            const userFiles = _.filter(files, (x) => x.startsWith(userFileName));
+            console.log(agentFiles, userFiles);
+            // if not return false
+            if (!agentFiles.length) {
+                throw new Error('Agent video data not found.');
+            } else if (!userFiles.length) {
+                throw new Error('User video not found.');
+            } else {
+                // TODO: pick only most recent if many
+                // TODO: refactor this merging to function, with parameters for user/agent
+                let agentFileAudio, agentFileVideo;
+                agentFiles.map((x) => {
+                    if (x.endsWith('audio.mjr')) agentFileAudio = x;
+                    else if (x.endsWith('video.mjr')) agentFileVideo = x;
+                });
+                console.log(agentFileAudio, agentFileVideo);
+                // convert agent audio to opus
+                const agentAudioResult = await execSync(`janus-pp-rec /recording-data/${agentFileAudio} /recording-pp/${
+                    agentFileAudio}.opus`);
+                // convert agent video to webm
+                const agentVideoResult = await execSync(`janus-pp-rec /recording-data/${agentFileVideo} /recording-pp/${
+                    agentFileVideo}.webm`);
+                console.log(agentAudioResult.toString());
+                console.log(agentVideoResult.toString());
+                // merge agent
+                const agentVideoFinalResult = await execSync(`ffmpeg -i /recording-pp/${agentFileAudio}.opus -i /recordings-pp/${
+                    agentFileVideo}.webm  -c:v copy -c:a opus -strict experimental /recording-merged/${agentFileName}.webm`);
+                console.log(agentVideoFinalResult.toString());
+
+                let userFileAudio, userFileVideo;
+                userFiles.map((x) => {
+                    if (x.endsWith('audio.mjr')) userFileAudio = x;
+                    else if (x.endsWith('video.mjr')) userFileVideo = x;
+                });
+                console.log(userFileAudio, userFileVideo);
+                // convert user audio to opus
+                const userAudioResult = await execSync(`janus-pp-rec /recording-data/${userFileAudio} /recording-pp/${userFileAudio}.opus`);
+                // convert user video to webm
+                const userVideoResult = await execSync(`janus-pp-rec /recording-data/${userFileVideo} /recording-pp/${userFileVideo}.webm`);
+                console.log(userAudioResult.toString());
+                console.log(userVideoResult.toString());
+                // merge user
+                const userVideoFinalResult = await execSync(`ffmpeg -i /recording-pp/${userFileAudio}.opus -i /recordings-pp/${
+                    userFileVideo}.webm  -c:v copy -c:a opus -strict experimental /recording-merged/${userFileName}.webm`);
+                console.log(userVideoFinalResult.toString());
+                // merge the two videos
+                res.send({
+                    success: true,
+                    message: 'Merged the videos',
+                    data: {
+                        mergedUrl: '',
+                        agentVideoUrl: '',
+                        userVideoUrl: '',
+                    }
+                })
+            }
         } else {
-            // TODO: pick only most recent if many
-            let agentFileAudio, agentFileVideo;
-            agentFiles.map((x) => {
-                if(x.endsWith('audio.mjr')) agentFileAudio = x;
-                else if(x.endsWith('video.mjr')) agentFileVideo = x;
-            });
-            console.log(agentFileAudio, agentFileVideo);
-            // convert agent audio to opus
-            const agentAudioResult = await execSync(`janus-pp-rec /recording-data/${agentFileAudio} /recording-pp/${agentFileAudio}.opus`);
-            // convert agent video to webm
-            const agentVideoResult = await execSync(`janus-pp-rec /recording-data/${agentFileVideo} /recording-pp/${agentFileVideo}.webm`);
-            console.log(agentAudioResult.toString());
-            console.log(agentVideoResult.toString());
-            // merge agent
-
-            let userFileAudio, userFileVideo;
-            userFiles.map((x) => {
-                if(x.endsWith('audio.mjr')) userFileAudio = x;
-                else if(x.endsWith('video.mjr')) userFileVideo = x;
-            });
-            console.log(userFileAudio, userFileVideo);
-            // convert user audio to opus
-            const userAudioResult = await execSync(`janus-pp-rec /recording-data/${userFileAudio} /recording-pp/${userFileAudio}.opus`);
-            // convert user video to webm
-            const userVideoResult = await execSync(`janus-pp-rec /recording-data/${userFileVideo} /recording-pp/${userFileVideo}.webm`);
-            console.log(userAudioResult.toString());
-            console.log(userVideoResult.toString());
-            // merge user
-
-            // merge the two videos
-            res.send({
-                success: true,
-                message: 'Merged the videos',
-                data: {
-                    mergedUrl: '',
-                    agentVideoUrl: '',
-                    userVideoUrl: '',
-                }
-            })
+            console.log('different storage type needs to be configured');
+            const storageDataUrls = req.body.storageData;
         }
     } catch (e) {
         res.send({
