@@ -5,11 +5,14 @@ const _ = require('lodash');
 const fs = require('fs');
 const fluent = require('fluent-ffmpeg');
 const azureUpload = require('./upload.js');
+const bodyParser = require('body-parser');
+
 
 // add the recorded calls to a bull queue and add them when call is hungup.
 // once the audio and the video are converted, send to another queue to merge
 // Something to use when events are received.
 const app = express();
+app.use(bodyParser.json({ limit: '10mb' }));
 
 app.get('/list-recordings', (req, res) => {
     exec(`ls -la /recording-data`, (stdout, result, stderr) => {
