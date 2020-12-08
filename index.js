@@ -46,6 +46,11 @@ app.post('/process-recordings', async (req, res) => {
             } else if (!userFiles.length) {
                 throw new Error('User video not found.');
             } else {
+                res.send({
+                    success: true,
+                    message: `started processing the recording ${callLog._id}`,
+                    data: callLog
+                });
                 const sideBySideMergeAndUrl = async (agentFileName, userFileName, mergedFileName) => {
                     await execSync(`ffmpeg -y -acodec libopus -i /recording-merged/${agentFileName}.webm -i /recording-merged/${userFileName
                     }.webm -filter_complex "[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix" /recording-final/${mergedFileName}.webm`);
@@ -89,7 +94,7 @@ app.post('/process-recordings', async (req, res) => {
                 const finalMergedFileUrl = sideBySideMergeAndUrl(agentFileName, userFileName, callLog._id);
                 console.log(finalMergedFileUrl, agentFileUrl, userFileUrl, "merged urls");
 
-                res.send({
+                await axios.post('agents-service.services:3000/janus/recording-pipeline-end', {
                     success: true,
                     message: 'Merged the videos',
                     data: {
