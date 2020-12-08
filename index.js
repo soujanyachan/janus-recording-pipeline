@@ -46,18 +46,13 @@ app.post('/process-recordings', async (req, res) => {
                 throw new Error('Agent video data not found.');
             } else if (!userFiles.length) {
                 throw new Error('User video not found.');
-            } else {
-                res.send({
-                    success: true,
-                    message: `started processing the recording ${callLog._id}`,
-                    data: callLog
-                });
             }
-        } else {
-            console.log('different storage type needs to be configured');
-            const storageDataUrls = req.body.storageData;
-            // get files and make sure they are of the right format, size is greater than zero.
         }
+        res.send({
+            success: true,
+            message: `started processing the recording ${callLog._id}`,
+            data: callLog
+        });
     } catch (e) {
         res.send({
             success: false,
