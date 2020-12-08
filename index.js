@@ -72,6 +72,8 @@ app.post('/process-recordings', async (req, res) => {
                 const agentVideoFinalResult = await execSync(`ffmpeg -y -acodec libopus -i /recording-pp/${agentFileAudio}.opus -i /recording-pp/${
                     agentFileVideo}.webm -c:v copy -c:a opus -strict experimental /recording-merged/${agentFileName}.webm`);
                 console.log(agentVideoFinalResult.toString());
+                const agentMergedVideoFileData = await fs.readFileSync(`/recording-merged/${agentFileName}.webm`);
+                const agentFileUrl = await azureUpload.createSasUrl(agentMergedVideoFileData, `uploaded-${agentFileName}.webm`);
 
                 let userFileAudio, userFileVideo;
                 userFiles.map((x) => {
@@ -89,18 +91,23 @@ app.post('/process-recordings', async (req, res) => {
                 const userVideoFinalResult = await execSync(`ffmpeg -y -acodec libopus -i /recording-pp/${userFileAudio}.opus -i /recordings-pp/${
                     userFileVideo}.webm  -c:v copy -c:a opus -strict experimental /recording-merged/${userFileName}.webm`);
                 console.log(userVideoFinalResult.toString());
+                const userMergedVideoFileData = await fs.readFileSync(`/recording-merged/${userFileName}.webm`);
+                const userFileUrl = await azureUpload.createSasUrl(userMergedVideoFileData, `uploaded-${userFileName}.webm`);
 
                 // merge the two videos
                 const finalMergedResult = await execSync(`ffmpeg -i /recording-merged/${agentFileName}.webm -i /recording-merged/${userFileName
 				}.webm -filter_complex "[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix" /recording-final/${callLog._id}.webm`);
                 console.log(finalMergedResult.toString());
+                const finalMergedVideoFileData = await fs.readFileSync(`/recording-final/${callLog._id}.webm`);
+                const finalMergedFileUrl = await azureUpload.createSasUrl(finalMergedVideoFileData, `uploaded-${callLog._id}.webm`);
+
                 res.send({
                     success: true,
                     message: 'Merged the videos',
                     data: {
-                        mergedUrl: '',
-                        agentVideoUrl: '',
-                        userVideoUrl: '',
+                        mergedUrl: finalMergedFileUrl,
+                        agentVideoUrl: agentFileUrl,
+                        userVideoUrl: userFileUrl,
                     }
                 });
             }
