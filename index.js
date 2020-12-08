@@ -56,22 +56,22 @@ app.post('/process-recordings', async (req, res) => {
                     if (x.endsWith('audio.mjr')) agentFileAudio = x;
                     else if (x.endsWith('video.mjr')) agentFileVideo = x;
                 });
-                console.log(agentFileAudio, agentFileVideo);
+                // console.log(agentFileAudio, agentFileVideo);
                 // convert agent audio to opus
-                console.log('1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111')
+                // console.log('1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111')
                 const agentAudioResult = await execSync(`janus-pp-rec /recording-data/${agentFileAudio} /recording-pp/${
                     agentFileAudio}.opus`);
                 // convert agent video to webm
-                console.log('22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222')
+                // console.log('22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222')
                 const agentVideoResult = await execSync(`janus-pp-rec /recording-data/${agentFileVideo} /recording-pp/${
                     agentFileVideo}.webm`);
-                console.log(agentAudioResult.toString());
-                console.log(agentVideoResult.toString());
+                // console.log(agentAudioResult.toString());
+                // console.log(agentVideoResult.toString());
                 // merge agent
-                console.log('3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333')
+                // console.log('3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333')
                 const agentVideoFinalResult = await execSync(`ffmpeg -y -acodec libopus -i /recording-pp/${agentFileAudio}.opus -i /recording-pp/${
                     agentFileVideo}.webm -c:v copy -c:a opus -strict experimental /recording-merged/${agentFileName}.webm`);
-                console.log(agentVideoFinalResult.toString());
+                // console.log(agentVideoFinalResult.toString());
                 const agentMergedVideoFileData = await fs.readFileSync(`/recording-merged/${agentFileName}.webm`);
                 const agentFileUrl = await azureUpload.createSasUrl(agentMergedVideoFileData, `uploaded-${agentFileName}.webm`);
 
@@ -80,24 +80,24 @@ app.post('/process-recordings', async (req, res) => {
                     if (x.endsWith('audio.mjr')) userFileAudio = x;
                     else if (x.endsWith('video.mjr')) userFileVideo = x;
                 });
-                console.log(userFileAudio, userFileVideo);
+                // console.log(userFileAudio, userFileVideo);
                 // convert user audio to opus
                 const userAudioResult = await execSync(`janus-pp-rec /recording-data/${userFileAudio} /recording-pp/${userFileAudio}.opus`);
                 // convert user video to webm
                 const userVideoResult = await execSync(`janus-pp-rec /recording-data/${userFileVideo} /recording-pp/${userFileVideo}.webm`);
-                console.log(userAudioResult.toString());
-                console.log(userVideoResult.toString());
+                // console.log(userAudioResult.toString());
+                // console.log(userVideoResult.toString());
                 // merge user
                 const userVideoFinalResult = await execSync(`ffmpeg -y -acodec libopus -i /recording-pp/${userFileAudio}.opus -i /recording-pp/${
                     userFileVideo}.webm  -c:v copy -c:a opus -strict experimental /recording-merged/${userFileName}.webm`);
-                console.log(userVideoFinalResult.toString());
+                // console.log(userVideoFinalResult.toString());
                 const userMergedVideoFileData = await fs.readFileSync(`/recording-merged/${userFileName}.webm`);
                 const userFileUrl = await azureUpload.createSasUrl(userMergedVideoFileData, `uploaded-${userFileName}.webm`);
 
                 // merge the two videos
                 const finalMergedResult = await execSync(`ffmpeg -y -acodec libopus -i /recording-merged/${agentFileName}.webm -i /recording-merged/${userFileName
 				}.webm -filter_complex "[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix" /recording-final/${callLog._id}.webm`);
-                console.log(finalMergedResult.toString());
+                // console.log(finalMergedResult.toString());
                 const finalMergedVideoFileData = await fs.readFileSync(`/recording-final/${callLog._id}.webm`);
                 const finalMergedFileUrl = await azureUpload.createSasUrl(finalMergedVideoFileData, `uploaded-${callLog._id}.webm`);
                 console.log(finalMergedFileUrl, agentFileUrl, userFileUrl, "merged urls");
