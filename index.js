@@ -64,7 +64,7 @@ app.post('/process-recordings', async (req, res) => {
             message: e.message
         });
     }
-    if (storageType === 'pvc') {
+    if (storageType === 'pvc' && agentFiles && userFiles) {
         const sideBySideMergeAndUrl = async (agentFileName, userFileName, mergedFileName) => {
             await execSync(`ffmpeg -y -acodec libopus -i /recording-merged/${agentFileName}.webm -i /recording-merged/${userFileName
             }.webm -filter_complex "[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix" /recording-final/${mergedFileName}.webm`);
@@ -107,16 +107,19 @@ app.post('/process-recordings', async (req, res) => {
 
         const finalMergedFileUrl = await sideBySideMergeAndUrl(agentFileName, userFileName, callLog._id);
         console.log(finalMergedFileUrl, agentFileUrl, userFileUrl, "merged urls");
-
-        await axios.post('agents-service.services:3000/janus/recording-pipeline-end', {
-            success: true,
-            message: 'Merged the videos',
-            data: {
-                mergedFileUrl: finalMergedFileUrl,
-                agentVideoUrl: agentFileUrl,
-                userVideoUrl: userFileUrl,
-            }
-        });
+        try {
+            await axios.post('agents-service.services:3000/janus/recording-pipeline-end', {
+                success: true,
+                message: 'Merged the videos',
+                data: {
+                    mergedFileUrl: finalMergedFileUrl,
+                    agentVideoUrl: agentFileUrl,
+                    userVideoUrl: userFileUrl,
+                }
+            });
+        } catch (e) {
+            console.log('error in sending to agent service after processing' + e.message);
+        }
     } else {
 
     }
