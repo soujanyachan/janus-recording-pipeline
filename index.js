@@ -49,17 +49,17 @@ app.post('/process-recordings', async (req, res) => {
             }
         }
         console.log('sending response 1');
-        res.end({
+        res.end(JSON.stringify({
             success: true,
             message: `started processing the recording ${callLog._id}`,
             data: callLog
-        });
+        }));
     } catch (e) {
         console.log('sending response 2');
-        res.end({
+        res.end(JSON.stringify({
             success: false,
             message: e.message
-        });
+        }));
     }
     if (storageType === 'pvc' && agentFiles && userFiles) {
         const sideBySideMergeAndUrl = async (agentFileName, userFileName, mergedFileName) => {
