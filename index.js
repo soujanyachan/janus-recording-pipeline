@@ -20,7 +20,7 @@ app.get('/list-recordings', (req, res) => {
 
 const createFileBaseNameFromCallLog = (callLog) => {
     const {botId, uid, ticketId, userSessionId, agentId, userHandleId, agentSessionId, agentHandleId} = callLog;
-    const userFileName = `user_${ticketId}_${botId}_${uid}`; //_${userSessionId}_${userHandleId}`;
+    const userFileName = `user_${ticketId}_${botId}_${uid}_${userSessionId}_${userHandleId}`;
     const agentFileName = `agent_${botId}_${agentId}_${agentSessionId}_${agentHandleId}`;
     return [agentFileName, userFileName];
 };
@@ -29,6 +29,7 @@ app.post('/process-recordings', async (req, res) => {
     const callLog = req.body.callLog;
     const storageType = req.body.storageType || 'pvc';
     const [agentFileName, userFileName] = createFileBaseNameFromCallLog(callLog);
+    console.log(agentFileName, userFileName, "base file names");
     let agentFiles, userFiles;
     try {
         if (!callLog) {
