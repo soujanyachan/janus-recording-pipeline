@@ -51,6 +51,58 @@ const createFileBaseNameFromCallLog = (callLog) => {
     return [agentFileName, userFileName];
 };
 
+const ffmpegSideBySideMergeAsync = (agentFileName, userFileName, mergedFileName, storageType) => {
+    return new Promise((resolve, reject) => {
+        let input1 = agentFileName;
+        let input2 = userFileName;
+        if (storageType === 'pvc'){
+            input1 = `/recording-merged/${agentFileName}.webm`;
+            input2 = `/recording-merged/${userFileName}.webm`;
+        }
+        ffmpeg()
+            .input(input1)
+            .input(input2)
+            .complexFilter("[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix")
+            .saveToFile(`/recording-final/${mergedFileName}.webm`)
+            .on('end', () => resolve())
+            .on('error', (err) => reject(new Error(err)))
+    });
+};
+
+const ffmpegMergeAvAsync = (agentFileAudio, agentFileVideo, agentFileName) => {
+    return new Promise((resolve, reject) => {
+        ffmpeg()
+            .addInput(`/recording-pp/${agentFileAudio}.opus`)
+            .audioCodec('opus')
+            .input(`/recording-pp/${agentFileVideo}.webm`)
+            .videoCodec('copy')
+            .saveToFile(`/recording-merged/${agentFileName}.webm`)
+            .on('end', () => resolve())
+            .on('error', (err) => reject(new Error(err)))
+    })
+};
+
+const sideBySideMergeAndUrl = async (agentFileName, userFileName, mergedFileName) => {
+    await ffmpegSideBySideMergeAsync(agentFileName, userFileName, mergedFileName);
+    const userMergedVideoFileData = await fs.readFileSync(`/recording-final/${mergedFileName}.webm`);
+    return azureUpload.createSasUrl(userMergedVideoFileData, `uploaded-${mergedFileName}.webm`);
+};
+
+const convertMjrToStandardAv = async (userFileAudio, userFileVideo) => {
+    const tasks = [
+        execSync(`janus-pp-rec /recording-data/${userFileAudio} /recording-pp/${userFileAudio}.opus`),
+        execSync(`janus-pp-rec /recording-data/${userFileVideo} /recording-pp/${userFileVideo}.webm`),
+    ];
+    await Promise.all(tasks);
+    console.log("convertMjrToStandardAv");
+};
+
+const mergeAvAndUpload = async (agentFileAudio, agentFileVideo, agentFileName) => {
+    await ffmpegMergeAvAsync(agentFileAudio, agentFileVideo, agentFileName);
+    const agentMergedVideoFileData = await fs.readFileSync(`/recording-merged/${agentFileName}.webm`);
+    return await azureUpload.createSasUrl(agentMergedVideoFileData, `uploaded-${agentFileName}.webm`);
+};
+
 app.post('/process-recordings', async (req, res) => {
     try {
         const callLog = req.body.callLog;
@@ -69,7 +121,7 @@ app.post('/process-recordings', async (req, res) => {
                     return fs.statSync(pvcDir + a).mtime.getTime() -
                         fs.statSync(pvcDir + b).mtime.getTime();
                 });
-                console.log(files);
+                // console.log(files);
                 agentFiles = _.filter(files, (x) => x.startsWith(agentFileName));
                 userFiles = _.filter(files, (x) => x.startsWith(userFileName));
                 console.log(agentFiles, userFiles);
@@ -92,37 +144,6 @@ app.post('/process-recordings', async (req, res) => {
             });
         }
         if (storageType === 'pvc' && !_.isEmpty(agentFiles) && !_.isEmpty(userFiles)) {
-            const sideBySideMergeAndUrl = async (agentFileName, userFileName, mergedFileName) => {
-                ffmpeg()
-                    .input(`/recording-merged/${agentFileName}.webm`)
-                    .input(`/recording-merged/${userFileName}.webm`)
-                    .complexFilter("[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix")
-                    .saveToFile(`/recording-final/${mergedFileName}.webm`);
-                const userMergedVideoFileData = await fs.readFileSync(`/recording-final/${mergedFileName}.webm`);
-                return azureUpload.createSasUrl(userMergedVideoFileData, `uploaded-${mergedFileName}.webm`);
-            };
-
-            const convertMjrToStandardAv = async (userFileAudio, userFileVideo) => {
-                const tasks = [
-                    execSync(`janus-pp-rec /recording-data/${userFileAudio} /recording-pp/${userFileAudio}.opus`),
-                    execSync(`janus-pp-rec /recording-data/${userFileVideo} /recording-pp/${userFileVideo}.webm`),
-                ];
-                await Promise.all(tasks);
-                console.log("convertMjrToStandardAv");
-            };
-
-            const mergeAvAndUpload = async (agentFileAudio, agentFileVideo, agentFileName) => {
-                ffmpeg()
-                    .addInput(`/recording-pp/${agentFileAudio}.opus`)
-                    .audioCodec('opus')
-                    .input(`/recording-pp/${agentFileVideo}.webm`)
-                    .videoCodec('copy')
-                    .saveToFile(`/recording-merged/${agentFileName}.webm`);
-
-                const agentMergedVideoFileData = await fs.readFileSync(`/recording-merged/${agentFileName}.webm`);
-                return await azureUpload.createSasUrl(agentMergedVideoFileData, `uploaded-${agentFileName}.webm`);
-            };
-
             let agentFileAudio, agentFileVideo;
             agentFiles.map((x) => {
                 if (x.endsWith('audio.mjr')) agentFileAudio = x;
@@ -133,6 +154,10 @@ app.post('/process-recordings', async (req, res) => {
                 if (x.endsWith('audio.mjr')) userFileAudio = x;
                 else if (x.endsWith('video.mjr')) userFileVideo = x;
             });
+            console.log(agentFileAudio, "agentFileAudio");
+            console.log(agentFileVideo, "agentFileVideo");
+            console.log(userFileAudio, "userFileAudio");
+            console.log(userFileVideo, "userFileVideo");
 
             await convertMjrToStandardAv(agentFileAudio, agentFileVideo);
             await convertMjrToStandardAv(userFileAudio, userFileVideo);
@@ -159,11 +184,7 @@ app.post('/process-recordings', async (req, res) => {
             const agentVideoUrl = _.get(req.body, 'videoUrls.agentVideoUrl', '') || callLog.agentRecordingId;
             const userVideoUrl = _.get(req.body, 'videoUrls.userVideoUrl', '') || callLog.userRecordingId;
             if (agentVideoUrl && userVideoUrl) {
-                ffmpeg()
-                    .input(agentVideoUrl)
-                    .input(userVideoUrl)
-                    .complexFilter("[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix")
-                    .saveToFile(`/recording-final/${callLog._id}.webm`);
+                await ffmpegSideBySideMergeAsync(agentVideoUrl, userVideoUrl, callLog._id, 'url');
                 const mergedVideoFileData = await fs.readFileSync(`/recording-final/${callLog._id}.webm`);
                 const mergedUrl = await azureUpload.createSasUrl(mergedVideoFileData, `uploaded-${callLog._id}.webm`)
                 try {
