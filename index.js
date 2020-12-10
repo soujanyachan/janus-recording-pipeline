@@ -63,7 +63,7 @@ app.post('/process-recordings', async (req, res) => {
                 throw new Error('Calllog required');
             }
             if (storageType === 'pvc') {
-                const pvcDir = '/recording-data';
+                const pvcDir = '/recording-data/';
                 const files = await fs.readdirSync(pvcDir);
                 files.sort(function (a, b) {
                     return fs.statSync(pvcDir + a).mtime.getTime() -
@@ -85,7 +85,7 @@ app.post('/process-recordings', async (req, res) => {
                 data: callLog
             });
         } catch (e) {
-            console.log('sending response 2');
+            console.log('sending response 2 ', e.message);
             return res.send({
                 success: false,
                 message: e.message
