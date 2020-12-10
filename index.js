@@ -82,8 +82,8 @@ const ffmpegMergeAvAsync = (agentFileAudio, agentFileVideo, agentFileName) => {
     })
 };
 
-const sideBySideMergeAndUrl = async (agentFileName, userFileName, mergedFileName) => {
-    await ffmpegSideBySideMergeAsync(agentFileName, userFileName, mergedFileName);
+const sideBySideMergeAndUrl = async (agentFileName, userFileName, mergedFileName, storageType) => {
+    await ffmpegSideBySideMergeAsync(agentFileName, userFileName, mergedFileName, storageType);
     const userMergedVideoFileData = await fs.readFileSync(`/recording-final/${mergedFileName}.webm`);
     return azureUpload.createSasUrl(userMergedVideoFileData, `uploaded-${mergedFileName}.webm`);
 };
@@ -164,7 +164,7 @@ app.post('/process-recordings', async (req, res) => {
             const agentFileUrl = await mergeAvAndUpload(agentFileAudio, agentFileVideo, agentFileName);
             const userFileUrl = await mergeAvAndUpload(userFileAudio, userFileVideo, userFileName);
 
-            const finalMergedFileUrl = await sideBySideMergeAndUrl(agentFileName, userFileName, callLog._id);
+            const finalMergedFileUrl = await sideBySideMergeAndUrl(agentFileName, userFileName, callLog._id, storageType);
             console.log(finalMergedFileUrl, agentFileUrl, userFileUrl, "merged urls");
             try {
                 const updateCallLogResponse = await axios.post('http://agents-service.services:3000/janus/internal/updateCallLogByCallLogId', {
@@ -184,7 +184,7 @@ app.post('/process-recordings', async (req, res) => {
             const agentVideoUrl = _.get(req.body, 'videoUrls.agentVideoUrl', '') || callLog.agentRecordingId;
             const userVideoUrl = _.get(req.body, 'videoUrls.userVideoUrl', '') || callLog.userRecordingId;
             if (agentVideoUrl && userVideoUrl) {
-                await ffmpegSideBySideMergeAsync(agentVideoUrl, userVideoUrl, callLog._id, 'url');
+                await ffmpegSideBySideMergeAsync(agentVideoUrl, userVideoUrl, callLog._id, storageType);
                 const mergedVideoFileData = await fs.readFileSync(`/recording-final/${callLog._id}.webm`);
                 const mergedUrl = await azureUpload.createSasUrl(mergedVideoFileData, `uploaded-${callLog._id}.webm`)
                 try {
