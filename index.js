@@ -177,109 +177,114 @@ app.get('/list-recordings', async (req, res) => {
     }
 });
 
-app.post('/process-recordings', async (req, res) => {
-    try {
-        const callLog = req.body.callLog;
-        const storageType = req.body.storageType || 'pvc';
-        const [agentFileName, userFileName] = createFileBaseNameFromCallLog(callLog);
-        console.log(agentFileName, userFileName, "base file names");
-        let agentFiles, userFiles;
-        try {
-            if (!callLog) {
-                throw new Error('Calllog required');
-            }
-            if (storageType === 'pvc') {
-                const pvcDir = '/recording-data/';
-                const files = await fs.readdirSync(pvcDir);
-                files.sort(function (a, b) {
-                    return fs.statSync(pvcDir + a).mtime.getTime() -
-                        fs.statSync(pvcDir + b).mtime.getTime();
-                });
-                // console.log(files);
-                agentFiles = _.filter(files, (x) => x.startsWith(agentFileName));
-                userFiles = _.filter(files, (x) => x.startsWith(userFileName));
-                console.log(agentFiles, userFiles);
-                if (!agentFiles.length) {
-                    throw new Error('Agent video data not found.');
-                } else if (!userFiles.length) {
-                    throw new Error('User video not found.');
-                }
-            }
-            await res.send({
-                success: true,
-                message: `started processing the recording ${callLog._id}`,
-                data: callLog
-            });
-        } catch (e) {
-            console.log('sending response 2 ', e.message);
-            return res.send({
-                success: false,
-                message: e.message
-            });
-        }
-        if (storageType === 'pvc' && !_.isEmpty(agentFiles) && !_.isEmpty(userFiles)) {
-            let agentFileAudio, agentFileVideo;
-            agentFiles.map((x) => {
-                if (x.endsWith('audio.mjr')) agentFileAudio = x;
-                else if (x.endsWith('video.mjr')) agentFileVideo = x;
-            });
-            let userFileAudio, userFileVideo;
-            userFiles.map((x) => {
-                if (x.endsWith('audio.mjr')) userFileAudio = x;
-                else if (x.endsWith('video.mjr')) userFileVideo = x;
-            });
-            console.log(agentFileAudio, "agentFileAudio");
-            console.log(agentFileVideo, "agentFileVideo");
-            console.log(userFileAudio, "userFileAudio");
-            console.log(userFileVideo, "userFileVideo");
+app.post('/process-recordings', (req,res) => {
+    res.sendStatus(200);
+})
 
-            await convertMjrToStandardAv(agentFileAudio, agentFileVideo);
-            await convertMjrToStandardAv(userFileAudio, userFileVideo);
-            const agentFileUrl = await mergeAvAndUpload(agentFileAudio, agentFileVideo, agentFileName);
-            const userFileUrl = await mergeAvAndUpload(userFileAudio, userFileVideo, userFileName);
-
-            const finalMergedFileUrl = await sideBySideMergeAndUrl(agentFileName, userFileName, callLog._id, storageType);
-            console.log(finalMergedFileUrl, agentFileUrl, userFileUrl, "merged urls");
-            try {
-                const updateCallLogResponse = await axios.post('http://agents-service.services:3000/janus/internal/updateCallLogByCallLogId', {
-                    callLogId: callLog._id,
-                    data: {
-                        mergedRecordingUrl: finalMergedFileUrl,
-                        agentRecordingId: agentFileUrl,
-                        userRecordingId: userFileUrl,
-                    }
-                });
-                console.log(updateCallLogResponse, "updateCallLogResponse");
-            } catch (e) {
-                console.log(`error in sending to agent service after processing ${e.message}`);
-            }
-        } else if (req.body.videoUrls || (callLog.userRecordingId && callLog.agentRecordingId)) {
-            const agentVideoUrl = _.get(req.body, 'videoUrls.agentVideoUrl', '') || callLog.agentRecordingId;
-            const userVideoUrl = _.get(req.body, 'videoUrls.userVideoUrl', '') || callLog.userRecordingId;
-            if (agentVideoUrl && userVideoUrl) {
-                await ffmpegSideBySideMergeAsync(agentVideoUrl, userVideoUrl, callLog._id, storageType);
-                const mergedVideoFileData = await fs.readFileSync(`/recording-final/${callLog._id}.webm`);
-                const mergedUrl = await azureUpload.createSasUrl(mergedVideoFileData, `uploaded-${callLog._id}.webm`)
-                try {
-                    const updateCallLogResponse = await axios.post('http://agents-service.services:3000/janus/internal/updateCallLogByCallLogId', {
-                        callLogId: callLog._id,
-                        data: {
-                            mergedRecordingUrl: mergedUrl,
-                        }
-                    });
-                    console.log(updateCallLogResponse, "updateCallLogResponse url version");
-                    await fs.unlinkSync(`/recording-final/${callLog._id}.webm`);
-                } catch (e) {
-                    console.log(`error in sending to agent service after processing urls ${e.message}`);
-                }
-            } else {
-                console.log('Missing user video url or agent video url.');
-            }
-        }
-    } catch (e) {
-        console.log(e, "general error in process recordings")
-    }
-});
+//
+// app.post('/process-recordings', async (req, res) => {
+//     try {
+//         const callLog = req.body.callLog;
+//         const storageType = req.body.storageType || 'pvc';
+//         const [agentFileName, userFileName] = createFileBaseNameFromCallLog(callLog);
+//         console.log(agentFileName, userFileName, "base file names");
+//         let agentFiles, userFiles;
+//         try {
+//             if (!callLog) {
+//                 throw new Error('Calllog required');
+//             }
+//             if (storageType === 'pvc') {
+//                 const pvcDir = '/recording-data/';
+//                 const files = await fs.readdirSync(pvcDir);
+//                 files.sort(function (a, b) {
+//                     return fs.statSync(pvcDir + a).mtime.getTime() -
+//                         fs.statSync(pvcDir + b).mtime.getTime();
+//                 });
+//                 // console.log(files);
+//                 agentFiles = _.filter(files, (x) => x.startsWith(agentFileName));
+//                 userFiles = _.filter(files, (x) => x.startsWith(userFileName));
+//                 console.log(agentFiles, userFiles);
+//                 if (!agentFiles.length) {
+//                     throw new Error('Agent video data not found.');
+//                 } else if (!userFiles.length) {
+//                     throw new Error('User video not found.');
+//                 }
+//             }
+//             await res.send({
+//                 success: true,
+//                 message: `started processing the recording ${callLog._id}`,
+//                 data: callLog
+//             });
+//         } catch (e) {
+//             console.log('sending response 2 ', e.message);
+//             return res.send({
+//                 success: false,
+//                 message: e.message
+//             });
+//         }
+//         if (storageType === 'pvc' && !_.isEmpty(agentFiles) && !_.isEmpty(userFiles)) {
+//             let agentFileAudio, agentFileVideo;
+//             agentFiles.map((x) => {
+//                 if (x.endsWith('audio.mjr')) agentFileAudio = x;
+//                 else if (x.endsWith('video.mjr')) agentFileVideo = x;
+//             });
+//             let userFileAudio, userFileVideo;
+//             userFiles.map((x) => {
+//                 if (x.endsWith('audio.mjr')) userFileAudio = x;
+//                 else if (x.endsWith('video.mjr')) userFileVideo = x;
+//             });
+//             console.log(agentFileAudio, "agentFileAudio");
+//             console.log(agentFileVideo, "agentFileVideo");
+//             console.log(userFileAudio, "userFileAudio");
+//             console.log(userFileVideo, "userFileVideo");
+//
+//             await convertMjrToStandardAv(agentFileAudio, agentFileVideo);
+//             await convertMjrToStandardAv(userFileAudio, userFileVideo);
+//             const agentFileUrl = await mergeAvAndUpload(agentFileAudio, agentFileVideo, agentFileName);
+//             const userFileUrl = await mergeAvAndUpload(userFileAudio, userFileVideo, userFileName);
+//
+//             const finalMergedFileUrl = await sideBySideMergeAndUrl(agentFileName, userFileName, callLog._id, storageType);
+//             console.log(finalMergedFileUrl, agentFileUrl, userFileUrl, "merged urls");
+//             try {
+//                 const updateCallLogResponse = await axios.post('http://agents-service.services:3000/janus/internal/updateCallLogByCallLogId', {
+//                     callLogId: callLog._id,
+//                     data: {
+//                         mergedRecordingUrl: finalMergedFileUrl,
+//                         agentRecordingId: agentFileUrl,
+//                         userRecordingId: userFileUrl,
+//                     }
+//                 });
+//                 console.log(updateCallLogResponse, "updateCallLogResponse");
+//             } catch (e) {
+//                 console.log(`error in sending to agent service after processing ${e.message}`);
+//             }
+//         } else if (req.body.videoUrls || (callLog.userRecordingId && callLog.agentRecordingId)) {
+//             const agentVideoUrl = _.get(req.body, 'videoUrls.agentVideoUrl', '') || callLog.agentRecordingId;
+//             const userVideoUrl = _.get(req.body, 'videoUrls.userVideoUrl', '') || callLog.userRecordingId;
+//             if (agentVideoUrl && userVideoUrl) {
+//                 await ffmpegSideBySideMergeAsync(agentVideoUrl, userVideoUrl, callLog._id, storageType);
+//                 const mergedVideoFileData = await fs.readFileSync(`/recording-final/${callLog._id}.webm`);
+//                 const mergedUrl = await azureUpload.createSasUrl(mergedVideoFileData, `uploaded-${callLog._id}.webm`)
+//                 try {
+//                     const updateCallLogResponse = await axios.post('http://agents-service.services:3000/janus/internal/updateCallLogByCallLogId', {
+//                         callLogId: callLog._id,
+//                         data: {
+//                             mergedRecordingUrl: mergedUrl,
+//                         }
+//                     });
+//                     console.log(updateCallLogResponse, "updateCallLogResponse url version");
+//                     await fs.unlinkSync(`/recording-final/${callLog._id}.webm`);
+//                 } catch (e) {
+//                     console.log(`error in sending to agent service after processing urls ${e.message}`);
+//                 }
+//             } else {
+//                 console.log('Missing user video url or agent video url.');
+//             }
+//         }
+//     } catch (e) {
+//         console.log(e, "general error in process recordings")
+//     }
+// });
 
 console.log('listening on port 9999');
 app.listen(9999);
