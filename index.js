@@ -7,6 +7,7 @@ const fs = require('fs');
 const chokidar = require('chokidar');
 const bodyParser = require('body-parser');
 const ffmpeg = require('fluent-ffmpeg');
+var path = require('path');
 
 /* required files */
 const azureUpload = require('./upload.js');
@@ -128,21 +129,22 @@ chokidar.watch('/recording-data', {
     },
 }).on(
     'add',
-    async (path) => {
+    async (fullFilePath) => {
     console.log(path, "path for added file");
+    const filePath = path.parse(fullFilePath).base;
     try {
-        const splitPath = path.split('_');
+        const splitPath = filePath.split('_');
         const callLogId = _.first(_.last(splitPath).split('-'));
         if (!avPairs[callLogId]) avPairs[callLogId] = {};
 
-        if (path.startsWith('user') && path.includes('audio')) {
-            avPairs[callLogId]['userAudio'] = path;
-        } else if (path.startsWith('user') && path.includes('video')) {
-            avPairs[callLogId]['userVideo'] = path;
-        } else if (path.startsWith('agent') && path.includes('audio')) {
-            avPairs[callLogId]['agentAudio'] = path;
-        } else if (path.startsWith('agent') && path.includes('video')) {
-            avPairs[callLogId]['agentVideo'] = path;
+        if (filePath.startsWith('user') && filePath.includes('audio')) {
+            avPairs[callLogId]['userAudio'] = filePath;
+        } else if (filePath.startsWith('user') && filePath.includes('video')) {
+            avPairs[callLogId]['userVideo'] = filePath;
+        } else if (filePath.startsWith('agent') && filePath.includes('audio')) {
+            avPairs[callLogId]['agentAudio'] = filePath;
+        } else if (filePath.startsWith('agent') && filePath.includes('video')) {
+            avPairs[callLogId]['agentVideo'] = filePath;
         }
 
         console.log(avPairs, "avPairs");
