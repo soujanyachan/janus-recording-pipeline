@@ -1,14 +1,30 @@
+/* required libraries */
 const axios = require('axios');
-const {exec, execSync} = require('child_process');
+const {execSync} = require('child_process');
 const express = require('express');
 const _ = require('lodash');
 const fs = require('fs');
-const azureUpload = require('./upload.js');
+const chokidar = require('chokidar');
 const bodyParser = require('body-parser');
 const ffmpeg = require('fluent-ffmpeg');
-// TODO: add chokidar and upload on save files if enabled
+
+/* required files */
+const azureUpload = require('./upload.js');
+
+/* global constants */
 const app = express();
+const avPairs = {};
+
+/* middleware */
 app.use(bodyParser.json({limit: '10mb'}));
+
+/* helper functions */
+const createFileBaseNameFromCallLog = (callLog) => {
+    const {botId, uid, ticketId, userSessionId, agentId, userHandleId, agentSessionId, agentHandleId} = callLog;
+    const userFileName = `user_${ticketId}_${botId}_${uid}_${userSessionId}_${userHandleId}_${callLog._id}`;
+    const agentFileName = `agent_${botId}_${agentId}_${agentSessionId}_${agentHandleId}_${callLog._id}`;
+    return [agentFileName, userFileName];
+};
 
 /*
  explanation of the ffmpeg commands:
@@ -27,29 +43,6 @@ app.use(bodyParser.json({limit: '10mb'}));
  Hstack stacks left and right input videos horizontally.
  Amix mixes the two audio tracks.
  */
-
-app.get('/list-recordings', async (req, res) => {
-    try {
-        const fileList = await fs.readdirSync('/recording-data');
-        res.send({
-            success: true,
-            message: 'Fetched list of recordings.',
-            data: fileList
-        });
-    } catch (e) {
-        res.send({
-            success: false,
-            message: `Error in fetching list of recordings: ${e.message}`,
-        });
-    }
-});
-
-const createFileBaseNameFromCallLog = (callLog) => {
-    const {botId, uid, ticketId, userSessionId, agentId, userHandleId, agentSessionId, agentHandleId} = callLog;
-    const userFileName = `user_${ticketId}_${botId}_${uid}_${userSessionId}_${userHandleId}_${callLog._id}`;
-    const agentFileName = `agent_${botId}_${agentId}_${agentSessionId}_${agentHandleId}_${callLog._id}`;
-    return [agentFileName, userFileName];
-};
 
 const ffmpegSideBySideMergeAsync = (agentFileName, userFileName, mergedFileName, storageType) => {
     return new Promise((resolve, reject) => {
@@ -126,6 +119,63 @@ const mergeAvAndUpload = async (agentFileAudio, agentFileVideo, agentFileName) =
     const agentMergedVideoFileData = await fs.readFileSync(`/recording-merged/${agentFileName}.webm`);
     return await azureUpload.createSasUrl(agentMergedVideoFileData, `uploaded-${agentFileName}.webm`);
 };
+
+/* file watcher */
+chokidar.watch('/recording-data', {
+    awaitWriteFinish: {
+        stabilityThreshold: 2000, //Amount of time in milliseconds for a file size to remain constant before emitting its event.
+        pollInterval: 100 // File size polling interval, in milliseconds.
+    },
+}).on(
+    'add',
+    async (path) => {
+    const splitPath = path.split('_');
+    const callLogId = _.first(_.last(splitPath).split('-'));
+    if (!avPairs[callLogId]) avPairs[callLogId] = {};
+
+    if (path.startsWith('user') && path.includes('audio')) {
+            avPairs[callLogId]['userAudio'] = path;
+    } else if (path.startsWith('user') && path.includes('video')) {
+            avPairs[callLogId]['userVideo'] = path;
+    } else if (path.startsWith('agent') && path.includes('audio')) {
+            avPairs[callLogId]['agentAudio'] = path;
+    } else if (path.startsWith('agent') && path.includes('video')) {
+            avPairs[callLogId]['agentVideo'] = path;
+    }
+
+    if (_.keys(avPairs[callLogId]).length === 4) {
+        const {agentAudio, agentVideo, userAudio, userVideo} = avPairs[callLogId];
+        await convertMjrToStandardAv(agentAudio, agentVideo);
+        await convertMjrToStandardAv(userAudio, userVideo);
+        const agentFileUrl = await mergeAvAndUpload(agentAudio, agentVideo, agentVideo);
+        const userFileUrl = await mergeAvAndUpload(userAudio, userVideo, userVideo);
+        const updateCallLogResponse = await axios.post('http://agents-service.services:3000/janus/internal/updateCallLogByCallLogId', {
+            callLogId,
+            data: {
+                agentRecordingId: agentFileUrl,
+                userRecordingId: userFileUrl,
+            }
+        });
+        console.log(updateCallLogResponse, "updateCallLogResponse from chokidar");
+    }
+});
+
+/* express routes */
+app.get('/list-recordings', async (req, res) => {
+    try {
+        const fileList = await fs.readdirSync('/recording-data');
+        res.send({
+            success: true,
+            message: 'Fetched list of recordings.',
+            data: fileList
+        });
+    } catch (e) {
+        res.send({
+            success: false,
+            message: `Error in fetching list of recordings: ${e.message}`,
+        });
+    }
+});
 
 app.post('/process-recordings', async (req, res) => {
     try {
@@ -233,198 +283,3 @@ app.post('/process-recordings', async (req, res) => {
 
 console.log('listening on port 9999');
 app.listen(9999);
-
-// const callback2 = function (event) {
-//
-// 	const combineUserAgentVideos = (callLog, userType, fileBaseName) => {
-// 		if (callLog.userRecordingId && callLog.agentRecordingId) {
-// 			console.log("inside combineuseragentvideos", fileBaseName);
-// 			// find the other file.
-// 			let outputFile = `output_file_${callLog.ticketId}_${callLog._id}.webm`;
-// 			const [agentFileName, userFileName] = parseFileBaseName(userType, fileBaseName, callLog);
-//
-// 			fs.readdir('./recordings-merged', (err, files) => {
-// 				let userVideo, agentVideo;
-// 				let fileListUser = files.filter(fn => fn.startsWith(userFileName));
-// 				fileListUser = fileListUser.sort();
-// 				userVideo = fileListUser[fileListUser.length - 1];
-// 				let fileListAgent = files.filter(fn => fn.startsWith(agentFileName));
-// 				fileListAgent = fileListAgent.sort();
-// 				agentVideo = fileListAgent[fileListAgent.length - 1];
-// 				console.log(agentVideo, userVideo, '1');
-// 				//on finding both files, run
-// 				console.log("running exec");
-// 				if (agentVideo && userVideo) {
-// 				exec(`ffmpeg -i ./recordings-merged/${agentVideo} -i ./recordings-merged/${userVideo
-// 				} -filter_complex "[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix" ${outputFile}`,
-// 					(stdout, res_multiple_combine, stderr) => {
-// 						console.log(stdout, "stdout");
-// 						console.log(res_multiple_combine)
-// 						console.log("done with exec");
-// 					});
-// 				}
-// 			});
-// 		}
-// 	};
-// 	const mask = event.mask;
-// 	let type = mask & Inotify.IN_ISDIR ? 'directory ' : 'file ';
-// 	if (event.name) {
-// 		type += ' ' + event.name + ' ';
-// 	} else {
-// 		type += ' ';
-// 	}
-//
-// 	if (mask & Inotify.IN_CLOSE_WRITE) {
-// 		// console.log(type + 'was accessed in recordings-merged');
-// 		// console.log(type, type.split(' '));
-// 		const fileBaseName = type.split(' ')[type.split(' ').length - 2];
-// 		// console.log(fileBaseName, "fileBasename");
-// 		if (fileBaseName.startsWith('user')) {
-// 			console.log('USER');
-// 			const userData = _.split(fileBaseName, '_');
-// 			const botId = userData[2];
-// 			const userSessionId = userData[5];
-// 			const userHandleId = userData[6];
-// 			// get call log based on this. if both available find the other file
-// 			axios({
-// 				baseURL: 'http://agents-service.services.svc.cluster.local:3000',
-// 				url: '/janus/internal/getCallLogByUserSessionHandleId',
-// 				params: {
-// 					userSessionId,
-// 					userHandleId,
-// 					botId,
-// 				}
-// 			}).then((res) => {
-// 				console.log(res.data, "calllog data user");
-// 				//console.log("res.data", res.data.data, res.data.data[0]);
-// 				return combineUserAgentVideos(res.data.data[0], 'user', fileBaseName);
-// 			}).catch((e) => {
-// 				console.log(e, "error")
-// 			});
-// 		} else if (fileBaseName.startsWith('agent')) {
-// 			console.log('AGENT');
-// 			const agentData = _.split(fileBaseName, '_');
-// 			const botId = agentData[1];
-// 			const agentSessionId = agentData[3];
-// 			const agentHandleId = agentData[4];
-// 			axios({
-// 				baseURL: 'http://agents-service.services.svc.cluster.local:3000',
-// 				url: '/janus/internal/getCallLogByAgentSessionHandleId',
-// 				params: {
-// 					agentSessionId,
-// 					agentHandleId,
-// 					botId,
-// 				}
-// 			}).then((res) => {
-// 				console.log(res.data, "calllog data agent");
-// 				//console.log("res.data", res.data, res.data.data[0]);
-// 				return combineUserAgentVideos(res.data.data[0] || res.data, 'agent', fileBaseName);
-// 			}).catch((e) => {
-// 				console.log(e, "error")
-// 			});
-// 		}
-// 	}
-// }
-//
-// const callback = function (event) {
-// 	const mask = event.mask;
-// 	let type = mask & Inotify.IN_ISDIR ? 'directory ' : 'file ';
-// 	if (event.name) {
-// 		type += ' ' + event.name + ' ';
-// 	} else {
-// 		type += ' ';
-// 	}
-// 	// the purpose of this hell of 'if' statements is only illustrative.
-//
-// 	if (mask & Inotify.IN_CLOSE_WRITE) {
-// 		// console.log(type + ' opened for writing was closed ');
-// 		const fileTokens = _.split(type, '-');
-// 		fileTokens[0] = (fileTokens[0].split(' ')[fileTokens[0].split(' ').length - 1]);
-// 		fileTokens.pop();
-// 		const fileBaseName = fileTokens.join('-');
-// 		if (!avPairs[fileBaseName]) {
-// 			avPairs[fileBaseName] = type;
-// 		} else {
-// 			exec(`janus-pp-rec ./recordings/${fileBaseName}-video.mjr ./recordings-pp/${fileBaseName}-video.webm`, (err, res_video, stderr) => {
-// 				// console.log(res_video, "res_video");
-// 				exec(`janus-pp-rec ./recordings/${fileBaseName}-audio.mjr ./recordings-pp/${fileBaseName}-audio.opus`, (err, res_audio, stderr) => {
-// 					// console.log(res_audio, "res_audio");
-// 					exec(`ffmpeg -i ./recordings-pp/${fileBaseName}-audio.opus -i ./recordings-pp/${fileBaseName}-video.webm  -c:v copy -c:a opus -strict experimental ./recordings-merged/${fileBaseName}.webm`, (err, res_merge, stderr) => {
-// 						// console.log(res_merge, "res_merge");
-// 						fs.readFile(`./recordings-merged/${fileBaseName}.webm`, (err, data) => {
-// 							if (!err) {
-// 								// bull - executor
-// 								// console.log('got data from file', data);
-// 								azureUpload.createSasUrl(data, `uploaded-${fileBaseName}.webm`).then((url) => {
-// 									// console.log(url);
-// 									// console.log('filebasename', fileBaseName, avPairs[fileBaseName]);
-// 									if (fileBaseName.startsWith('user')) {
-// 										 console.log('USER r');
-// 										try {
-// 											const userData = _.split(fileBaseName, '_');
-// 											const ticketId = userData[1];
-// 											const botId = userData[2];
-// 											const uid = userData[3];
-// 											const userSessionId = userData[5];
-// 											const userHandleId = userData[6];
-// 											if (ticketPairs[ticketId]) {
-// 												ticketPairs[ticketId].push(fileBaseName);
-// 											} else {
-// 												ticketPairs[ticketId] = [fileBaseName];
-// 											}
-// 											axios({
-// 												method: 'post',
-// 												baseURL: 'http://agents-service.services.svc.cluster.local:3000',
-// 												url: '/janus/internal/updateCallLogByUserSessionHandleId',
-// 												data: {
-// 													userSessionId,
-// 													userHandleId,
-// 													botId,
-// 													url
-// 												}
-// 											}).then((res) => {
-// 												console.log(res.data, "rec user calllog data");
-// 											}).catch((e) => {
-// 												console.log(e, "error")
-// 											});
-// 										} catch (e) {
-// 											console.log(e, "err");
-// 										}
-// 									}
-// 									if (fileBaseName.startsWith('agent')) {
-// 										console.log('AGENT');
-// 										try {
-// 											const agentData = _.split(fileBaseName, '_');
-// 											const botId = agentData[1];
-// 											const agentId = agentData[2];
-// 											const agentSessionId = agentData[3];
-// 											const agentHandleId = agentData[4];
-// 											axios({
-// 												method: 'post',
-// 												baseURL: 'http://agents-service.services.svc.cluster.local:3000',
-// 												url: '/janus/internal/updateCallLogByAgentSessionHandleId',
-// 												data: {
-// 													agentSessionId,
-// 													agentHandleId,
-// 													botId,
-// 													url
-// 												}
-// 											}).then((res) => {
-// 												 console.log(res.data, "agent rec calllog data");
-// 											}).catch((e) => {
-// 												console.log(e, "error")
-// 											});
-// 										} catch (e) {
-// 											console.log(e, "err");
-// 										}
-// 									}
-// 								});
-// 							}
-// 						})
-//
-// 					});
-// 				});
-// 			});
-// 		}
-// 	}
-// };
