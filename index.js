@@ -129,6 +129,7 @@ chokidar.watch('/recording-data', {
 }).on(
     'add',
     async (path) => {
+    console.log(path, "path for added file");
     const splitPath = path.split('_');
     const callLogId = _.first(_.last(splitPath).split('-'));
     if (!avPairs[callLogId]) avPairs[callLogId] = {};
