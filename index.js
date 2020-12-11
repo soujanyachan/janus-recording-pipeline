@@ -145,6 +145,8 @@ chokidar.watch('/recording-data', {
             avPairs[callLogId]['agentVideo'] = path;
         }
 
+        console.log(avPairs, "avPairs");
+
         if (_.keys(avPairs[callLogId]).length === 4) {
             const {agentAudio, agentVideo, userAudio, userVideo} = avPairs[callLogId];
             await convertMjrToStandardAv(agentAudio, agentVideo);
