@@ -190,10 +190,6 @@ app.get('/list-recordings', async (req, res) => {
     }
 });
 
-app.post('/process-recordings', (req,res) => {
-    res.sendStatus(200);
-})
-
 app.post('/process-recordings', async (req, res) => {
     try {
         const callLog = req.body.callLog;
