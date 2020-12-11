@@ -150,6 +150,7 @@ if (process.env.FILE_WATCH_ENABLED === 'enabled') {
                 }
 
                 if (_.keys(avPairs[callLogId]).length === 4) {
+                    console.log(avPairs, "avPairs");
                     const {agentAudio, agentVideo, userAudio, userVideo} = avPairs[callLogId];
                     await convertMjrToStandardAv(agentAudio, agentVideo);
                     await convertMjrToStandardAv(userAudio, userVideo);
