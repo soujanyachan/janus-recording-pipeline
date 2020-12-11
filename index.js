@@ -130,34 +130,38 @@ chokidar.watch('/recording-data', {
     'add',
     async (path) => {
     console.log(path, "path for added file");
-    const splitPath = path.split('_');
-    const callLogId = _.first(_.last(splitPath).split('-'));
-    if (!avPairs[callLogId]) avPairs[callLogId] = {};
+    try {
+        const splitPath = path.split('_');
+        const callLogId = _.first(_.last(splitPath).split('-'));
+        if (!avPairs[callLogId]) avPairs[callLogId] = {};
 
-    if (path.startsWith('user') && path.includes('audio')) {
+        if (path.startsWith('user') && path.includes('audio')) {
             avPairs[callLogId]['userAudio'] = path;
-    } else if (path.startsWith('user') && path.includes('video')) {
+        } else if (path.startsWith('user') && path.includes('video')) {
             avPairs[callLogId]['userVideo'] = path;
-    } else if (path.startsWith('agent') && path.includes('audio')) {
+        } else if (path.startsWith('agent') && path.includes('audio')) {
             avPairs[callLogId]['agentAudio'] = path;
-    } else if (path.startsWith('agent') && path.includes('video')) {
+        } else if (path.startsWith('agent') && path.includes('video')) {
             avPairs[callLogId]['agentVideo'] = path;
-    }
+        }
 
-    if (_.keys(avPairs[callLogId]).length === 4) {
-        const {agentAudio, agentVideo, userAudio, userVideo} = avPairs[callLogId];
-        await convertMjrToStandardAv(agentAudio, agentVideo);
-        await convertMjrToStandardAv(userAudio, userVideo);
-        const agentFileUrl = await mergeAvAndUpload(agentAudio, agentVideo, agentVideo);
-        const userFileUrl = await mergeAvAndUpload(userAudio, userVideo, userVideo);
-        const updateCallLogResponse = await axios.post('http://agents-service.services:3000/janus/internal/updateCallLogByCallLogId', {
-            callLogId,
-            data: {
-                agentRecordingId: agentFileUrl,
-                userRecordingId: userFileUrl,
-            }
-        });
-        console.log(updateCallLogResponse, "updateCallLogResponse from chokidar");
+        if (_.keys(avPairs[callLogId]).length === 4) {
+            const {agentAudio, agentVideo, userAudio, userVideo} = avPairs[callLogId];
+            await convertMjrToStandardAv(agentAudio, agentVideo);
+            await convertMjrToStandardAv(userAudio, userVideo);
+            const agentFileUrl = await mergeAvAndUpload(agentAudio, agentVideo, agentVideo);
+            const userFileUrl = await mergeAvAndUpload(userAudio, userVideo, userVideo);
+            const updateCallLogResponse = await axios.post('http://agents-service.services:3000/janus/internal/updateCallLogByCallLogId', {
+                callLogId,
+                data: {
+                    agentRecordingId: agentFileUrl,
+                    userRecordingId: userFileUrl,
+                }
+            });
+            console.log(updateCallLogResponse, "updateCallLogResponse from chokidar");
+        }
+    } catch (e) {
+        console.log(e, "error in chokidar file upload")
     }
 });
 
