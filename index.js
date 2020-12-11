@@ -110,8 +110,8 @@ const sideBySideMergeAndUrl = async (agentFileName, userFileName, mergedFileName
 
 const convertMjrToStandardAv = async (userFileAudio, userFileVideo) => {
     const tasks = [
-        execSync(`janus-pp-rec -d 7 /recording-data/${userFileAudio} /recording-pp/${userFileAudio}.opus`),
-        execSync(`janus-pp-rec -d 7 /recording-data/${userFileVideo} /recording-pp/${userFileVideo}.webm`),
+        execSync(`janus-pp-rec /recording-data/${userFileAudio} /recording-pp/${userFileAudio}.opus`),
+        execSync(`janus-pp-rec /recording-data/${userFileVideo} /recording-pp/${userFileVideo}.webm`),
     ];
     const [opLog1, opLog2] = await Promise.all(tasks);
     console.log(opLog1.toString(), "janus-pp-rec log 1");
