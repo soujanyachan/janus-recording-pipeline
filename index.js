@@ -125,6 +125,7 @@ const mergeAvAndUpload = async (agentFileAudio, agentFileVideo, agentFileName) =
 console.log(process.env.FILE_WATCH_ENABLED, "FILE_WATCH_ENABLED");
 if (process.env.FILE_WATCH_ENABLED === 'enabled') {
     chokidar.watch('/recording-data', {
+        usePolling: true,
         awaitWriteFinish: {
             stabilityThreshold: 2000, //Amount of time in milliseconds for a file size to remain constant before emitting its event.
             pollInterval: 100 // File size polling interval, in milliseconds.
