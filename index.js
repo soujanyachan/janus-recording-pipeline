@@ -132,7 +132,7 @@ if (process.env.FILE_WATCH_ENABLED === 'enabled') {
     }).on(
         'add',
         async (fullFilePath) => {
-            console.log(path, "path for added file");
+            console.log(fullFilePath, "path for added file");
             const filePath = path.parse(fullFilePath).base;
             try {
                 const splitPath = filePath.split('_');
