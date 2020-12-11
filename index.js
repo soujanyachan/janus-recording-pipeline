@@ -165,7 +165,8 @@ chokidar.watch('/recording-data', {
     } catch (e) {
         console.log(e, "error in chokidar file upload")
     }
-});
+}
+).on('error', (e) => console.log(e, "error in chokidar"));
 
 /* express routes */
 app.get('/list-recordings', async (req, res) => {
