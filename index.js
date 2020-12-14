@@ -251,6 +251,7 @@ app.post('/process-recordings', async (req, res) => {
 
             await convertMjrToStandardAv(agentFileAudio, agentFileVideo);
             await convertMjrToStandardAv(userFileAudio, userFileVideo);
+            setTimeout(async () => {
             const agentFileUrl = await mergeAvAndUpload(agentFileAudio, agentFileVideo, agentFileName);
             const userFileUrl = await mergeAvAndUpload(userFileAudio, userFileVideo, userFileName);
 
@@ -269,6 +270,7 @@ app.post('/process-recordings', async (req, res) => {
             } catch (e) {
                 console.log(`error in sending to agent service after processing ${e.message}`);
             }
+            }, 1000);
         } else if (req.body.videoUrls || (callLog.userRecordingId && callLog.agentRecordingId)) {
             const agentVideoUrl = _.get(req.body, 'videoUrls.agentVideoUrl', '') || callLog.agentRecordingId;
             const userVideoUrl = _.get(req.body, 'videoUrls.userVideoUrl', '') || callLog.userRecordingId;
