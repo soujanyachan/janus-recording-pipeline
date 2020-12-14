@@ -15,6 +15,7 @@ const azureUpload = require('./upload.js');
 /* global constants, init */
 const app = express();
 const avPairs = {};
+// for now, setting this
 process.setMaxListeners(0);
 
 /* middleware */
