@@ -12,9 +12,10 @@ var path = require('path');
 /* required files */
 const azureUpload = require('./upload.js');
 
-/* global constants */
+/* global constants, init */
 const app = express();
 const avPairs = {};
+process.setMaxListeners(0);
 
 /* middleware */
 app.use(bodyParser.json({limit: '10mb'}));
@@ -72,7 +73,7 @@ const ffmpegSideBySideMergeAsync = (agentFileName, userFileName, mergedFileName,
                         reject(new Error(e));
                     }
                 })
-                .on('error', (err) => reject(new Error(err)))
+                .on('error', (err) => reject(new Error(err)));
         } else console.log(check1, check2, 'ffmpegSideBySideMergeAsync file not found')
     });
 };
