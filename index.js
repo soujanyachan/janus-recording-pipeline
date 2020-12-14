@@ -75,7 +75,9 @@ const ffmpegSideBySideMergeAsync = (agentFileName, userFileName, mergedFileName,
 
 const ffmpegMergeAvAsync = (agentFileAudio, agentFileVideo, agentFileName) => {
     return new Promise(async (resolve, reject) => {
-        if (fs.existsSync(`/recording-pp/${agentFileAudio}.opus`) && fs.existsSync(`/recording-merged/${agentFileName}.webm`)) {
+        const check1 = await fs.existsSync(`/recording-pp/${agentFileAudio}.opus`);
+        const check2 = await fs.existsSync(`/recording-pp/${agentFileVideo}.webm`);
+        if (check1 && check2) {
             ffmpeg()
                 .addInput(`/recording-pp/${agentFileAudio}.opus`)
                 .audioCodec('opus')
@@ -93,7 +95,7 @@ const ffmpegMergeAvAsync = (agentFileAudio, agentFileVideo, agentFileName) => {
                     }
                 })
                 .on('error', (err) => reject(new Error(err)))
-        }
+        } else console.log(check1, check2);
     })
 };
 
