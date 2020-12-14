@@ -87,7 +87,8 @@ const ffmpegMergeAvAsync = (agentFileAudio, agentFileVideo, agentFileName) => {
                     await fs.unlinkSync(`/recording-pp/${agentFileVideo}.webm`);
                     resolve();
                 } catch (e) {
-                    reject(new Error(e));
+                    console.log(e.message, "error in ffmpegMergeAvAsync", agentFileVideo);
+                    // reject(new Error(e));
                 }
             })
             .on('error', (err) => reject(new Error(err)))
