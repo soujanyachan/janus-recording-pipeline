@@ -46,30 +46,34 @@ const createFileBaseNameFromCallLog = (callLog) => {
  */
 
 const ffmpegSideBySideMergeAsync = (agentFileName, userFileName, mergedFileName, storageType) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         let input1 = agentFileName;
         let input2 = userFileName;
         if (storageType === 'pvc'){
             input1 = `/recording-merged/${agentFileName}.webm`;
             input2 = `/recording-merged/${userFileName}.webm`;
         }
-        ffmpeg()
-            .input(input1)
-            .input(input2)
-            .complexFilter("[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix")
-            .saveToFile(`/recording-final/${mergedFileName}.webm`)
-            .on('end', async () => {
-                try {
-                    if (storageType === 'pvc') {
-                        await fs.unlinkSync(input1);
-                        await fs.unlinkSync(input2);
+        const check1 = await fs.existsSync(input1);
+        const check2 = await fs.existsSync(input2);
+        if (check1 && check2) {
+            ffmpeg()
+                .input(input1)
+                .input(input2)
+                .complexFilter("[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix")
+                .saveToFile(`/recording-final/${mergedFileName}.webm`)
+                .on('end', async () => {
+                    try {
+                        if (storageType === 'pvc') {
+                            await fs.unlinkSync(input1);
+                            await fs.unlinkSync(input2);
+                        }
+                        resolve();
+                    } catch (e) {
+                        reject(new Error(e));
                     }
-                    resolve();
-                } catch (e) {
-                    reject(new Error(e));
-                }
-            })
-            .on('error', (err) => reject(new Error(err)))
+                })
+                .on('error', (err) => reject(new Error(err)))
+        } else console.log(check1, check2, 'ffmpegSideBySideMergeAsync file not found')
     });
 };
 
@@ -95,7 +99,7 @@ const ffmpegMergeAvAsync = (agentFileAudio, agentFileVideo, agentFileName) => {
                     }
                 })
                 .on('error', (err) => reject(new Error(err)))
-        } else console.log(check1, check2);
+        } else console.log(check1, check2, 'ffmpegMergeAvAsync file not found');
     })
 };
 
@@ -108,20 +112,24 @@ const sideBySideMergeAndUrl = async (agentFileName, userFileName, mergedFileName
 };
 
 const convertMjrToStandardAv = async (userFileAudio, userFileVideo) => {
-    const tasks = [
-        execSync(`janus-pp-rec /recording-data/${userFileAudio} /recording-pp/${userFileAudio}.opus`),
-        execSync(`janus-pp-rec /recording-data/${userFileVideo} /recording-pp/${userFileVideo}.webm`),
-    ];
-    const [opLog1, opLog2] = await Promise.all(tasks);
-    console.log(opLog1.toString(), "janus-pp-rec log 1");
-    console.log(opLog2.toString(), "janus-pp-rec log 2");
     const check1 = await fs.existsSync(`/recording-pp/${userFileAudio}.opus`);
     console.log(`fs.existsSync /recording-pp/${userFileAudio}.opus`, check1);
     const check2 = await fs.existsSync(`/recording-pp/${userFileVideo}.webm`);
     console.log(`fs.existsSync /recording-pp/${userFileVideo}.webm`, check2);
-    await fs.unlinkSync(`/recording-data/${userFileAudio}`);
-    await fs.unlinkSync(`/recording-data/${userFileVideo}`);
-    console.log("convertMjrToStandardAv");
+    if (check1 && check2) {
+        const tasks = [
+            execSync(`janus-pp-rec /recording-data/${userFileAudio} /recording-pp/${userFileAudio}.opus`),
+            execSync(`janus-pp-rec /recording-data/${userFileVideo} /recording-pp/${userFileVideo}.webm`),
+        ];
+        const [opLog1, opLog2] = await Promise.all(tasks);
+        console.log(opLog1.toString(), "janus-pp-rec log 1");
+        console.log(opLog2.toString(), "janus-pp-rec log 2");
+        await fs.unlinkSync(`/recording-data/${userFileAudio}`);
+        await fs.unlinkSync(`/recording-data/${userFileVideo}`);
+        console.log("convertMjrToStandardAv");
+    } else {
+        console.log('convertMjrToStandardAv file not found', check1, check2);
+    }
 };
 
 const mergeAvAndUpload = async (agentFileAudio, agentFileVideo, agentFileName) => {
