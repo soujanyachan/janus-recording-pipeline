@@ -111,8 +111,10 @@ const convertMjrToStandardAv = async (userFileAudio, userFileVideo) => {
     const [opLog1, opLog2] = await Promise.all(tasks);
     console.log(opLog1.toString(), "janus-pp-rec log 1");
     console.log(opLog2.toString(), "janus-pp-rec log 2");
-    // await fs.unlinkSync(`/recording-data/${userFileAudio}`);
-    // await fs.unlinkSync(`/recording-data/${userFileVideo}`);
+    console.log(await fs.existsSync(`/recording-pp/${userFileAudio}.opus`), `fs.existsSync /recording-pp/${userFileAudio}.opus`);
+    console.log(await fs.existsSync(`/recording-pp/${userFileVideo}.web,`), `fs.existsSync /recording-pp/${userFileVideo}.webm`);
+    await fs.unlinkSync(`/recording-data/${userFileAudio}`);
+    await fs.unlinkSync(`/recording-data/${userFileVideo}`);
     console.log("convertMjrToStandardAv");
 };
 
