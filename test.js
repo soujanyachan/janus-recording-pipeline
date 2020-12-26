@@ -3,14 +3,14 @@ const fs = require('fs');
 const ffmpeg = require('fluent-ffmpeg');
 const chokidar = require('chokidar');
 
-chokidar.watch('.', {
-    awaitWriteFinish: {
-        stabilityThreshold: 2000, //Amount of time in milliseconds for a file size to remain constant before emitting its event.
-        pollInterval: 100 // File size polling interval, in milliseconds.
-    },
-}).on('add', (path) => {
-    console.log(path);
-});
+// chokidar.watch('.', {
+//     awaitWriteFinish: {
+//         stabilityThreshold: 2000, //Amount of time in milliseconds for a file size to remain constant before emitting its event.
+//         pollInterval: 100 // File size polling interval, in milliseconds.
+//     },
+// }).on('add', (path) => {
+//     console.log(path);
+// });
 //
 // const test = async () => {
 //     const audioData = await fs.readFileSync('user_103105_x1580919615924_12617922823921245942957577026_1083821520278279_2085275495914519_1607509741759-audio.mjr');
@@ -27,12 +27,36 @@ chokidar.watch('.', {
 //
 // test();
 
-// ffmpeg()
-//     .addInput(`bb.opus`)
-//     .audioCodec('opus')
-//     .input(`bb.webm`)
-//     .videoCodec('copy')
-//     .saveToFile(`bb-merged.webm`);
+for(let i=0; i< 20; i++)
+{
+    const temp = ffmpeg();
+
+    temp
+        .addInput(`bb.opus`)
+        .audioCodec('opus')
+        .input(`bb.webm`)
+        .videoCodec('copy')
+        .saveToFile(`./test_files/bb-merged-${i}.webm`)
+        .on('end', () => {
+            console.log('end');
+        })
+        .on('error', () => {
+            console.log('error');
+        });
+
+    temp
+        .addInput(`temp.opus`)
+        .audioCodec('opus')
+        .input(`temp.webm`)
+        .videoCodec('copy')
+        .saveToFile(`./test_files/temp-merged-${i}.webm`)
+        .on('end', () => {
+            console.log('end');
+        })
+        .on('error', () => {
+            console.log('error');
+        });
+}
 
 // await execSync(`ffmpeg -y -acodec libopus -i /recording-merged/${agentFileName}.webm -i /recording-merged/${userFileName
 // }.webm -filter_complex "[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix" /recording-final/${mergedFileName}.webm`);

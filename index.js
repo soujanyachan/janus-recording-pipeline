@@ -15,8 +15,7 @@ const azureUpload = require('./upload.js');
 /* global constants, init */
 const app = express();
 const avPairs = {};
-// for now, setting this
-process.setMaxListeners(0);
+const ffmpegCommand = ffmpeg();
 
 /* middleware */
 app.use(bodyParser.json({limit: '10mb'}));
@@ -58,7 +57,7 @@ const ffmpegSideBySideMergeAsync = (agentFileName, userFileName, mergedFileName,
         const check1 = await fs.existsSync(input1);
         const check2 = await fs.existsSync(input2);
         if (check1 && check2) {
-            ffmpeg()
+            ffmpegCommand
                 .input(input1)
                 .input(input2)
                 .complexFilter("[0:v]scale=480:640,setsar=1[l];[1:v]scale=480:640,setsar=1[r];[l][r]hstack;[0][1]amix")
@@ -84,7 +83,7 @@ const ffmpegMergeAvAsync = (agentFileAudio, agentFileVideo, agentFileName) => {
         const check1 = await fs.existsSync(`/recording-pp/${agentFileAudio}.opus`);
         const check2 = await fs.existsSync(`/recording-pp/${agentFileVideo}.webm`);
         if (check1 && check2) {
-            ffmpeg()
+            ffmpegCommand
                 .addInput(`/recording-pp/${agentFileAudio}.opus`)
                 .audioCodec('opus')
                 .input(`/recording-pp/${agentFileVideo}.webm`)
