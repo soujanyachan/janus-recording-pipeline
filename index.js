@@ -74,7 +74,10 @@ const ffmpegSideBySideMergeAsync = (agentFileName, userFileName, mergedFileName,
                     }
                 })
                 .on('error', (err) => reject(new Error(err)));
-        } else console.log(check1, check2, 'ffmpegSideBySideMergeAsync file not found')
+        } else {
+            console.log(check1, check2, 'ffmpegSideBySideMergeAsync file not found');
+            throw new Error(`${check1}, ${check2}, 'ffmpegSideBySideMergeAsync file not found'`)
+        }
     });
 };
 
@@ -100,7 +103,10 @@ const ffmpegMergeAvAsync = (agentFileAudio, agentFileVideo, agentFileName) => {
                     }
                 })
                 .on('error', (err) => reject(new Error(err)))
-        } else console.log(check1, check2, 'ffmpegMergeAvAsync file not found');
+        } else {
+            console.log(check1, check2, 'ffmpegMergeAvAsync file not found');
+            throw new Error(`${check1}, ${check2}, 'ffmpegMergeAvAsync file not found'`)
+        }
     })
 };
 
