@@ -119,10 +119,10 @@ const sideBySideMergeAndUrl = async (agentFileName, userFileName, mergedFileName
 };
 
 const convertMjrToStandardAv = async (userFileAudio, userFileVideo) => {
-    const check1 = await fs.existsSync(`/recording-pp/${userFileAudio}.opus`);
-    console.log(`fs.existsSync /recording-pp/${userFileAudio}.opus`, check1);
-    const check2 = await fs.existsSync(`/recording-pp/${userFileVideo}.webm`);
-    console.log(`fs.existsSync /recording-pp/${userFileVideo}.webm`, check2);
+    const check1 = await fs.existsSync(`/recording-data/${userFileAudio}`);
+    console.log(`fs.existsSync /recording-data/${userFileAudio}`, check1);
+    const check2 = await fs.existsSync(`/recording-data/${userFileVideo}`);
+    console.log(`fs.existsSync /recording-data/${userFileVideo}`, check2);
     if (check1 && check2) {
         const tasks = [
             execSync(`janus-pp-rec /recording-data/${userFileAudio} /recording-pp/${userFileAudio}.opus`),
@@ -269,6 +269,18 @@ app.post('/process-recordings', async (req, res) => {
             console.log(agentFileVideo, "agentFileVideo");
             console.log(userFileAudio, "userFileAudio");
             console.log(userFileVideo, "userFileVideo");
+            // todo await file save.
+            const chokidarOptions = {
+                usePolling: true,
+                awaitWriteFinish: {
+                    stabilityThreshold: 2000, //Amount of time in milliseconds for a file size to remain constant before emitting its event.
+                    pollInterval: 100 // File size polling interval, in milliseconds.
+                },
+            }
+            chokidar.watch(agentFileAudio, chokidarOptions)
+            chokidar.watch(agentFileVideo, chokidarOptions)
+            chokidar.watch(userFileAudio, chokidarOptions)
+            chokidar.watch(userFileVideo, chokidarOptions)
 
             await convertMjrToStandardAv(agentFileAudio, agentFileVideo);
             await convertMjrToStandardAv(userFileAudio, userFileVideo);
