@@ -45,7 +45,7 @@ const createFileBaseNameFromCallLog = (callLog) => {
  Amix mixes the two audio tracks.
  */
 
-const ffmpegSideBySideMergeAsync = (agentFileName, userFileName, mergedFileName, storageType) => {
+const ffmpegSideBySideMergeAsync = (ffmpegCommand, agentFileName, userFileName, mergedFileName, storageType) => {
     return new Promise(async (resolve, reject) => {
         let input1 = agentFileName;
         let input2 = userFileName;
@@ -56,7 +56,6 @@ const ffmpegSideBySideMergeAsync = (agentFileName, userFileName, mergedFileName,
         const check1 = await fs.existsSync(input1);
         const check2 = await fs.existsSync(input2);
         if (check1 && check2) {
-            const ffmpegCommand = ffmpeg();
             ffmpegCommand
                 .input(input1)
                 .input(input2)
@@ -81,12 +80,11 @@ const ffmpegSideBySideMergeAsync = (agentFileName, userFileName, mergedFileName,
     });
 };
 
-const ffmpegMergeAvAsync = (agentFileAudio, agentFileVideo, agentFileName) => {
+const ffmpegMergeAvAsync = (ffmpegCommand, agentFileAudio, agentFileVideo, agentFileName) => {
     return new Promise(async (resolve, reject) => {
         const check1 = await fs.existsSync(`/recording-pp/${agentFileAudio}.opus`);
         const check2 = await fs.existsSync(`/recording-pp/${agentFileVideo}.webm`);
         if (check1 && check2) {
-            const ffmpegCommand = ffmpeg();
             ffmpegCommand
                 .addInput(`/recording-pp/${agentFileAudio}.opus`)
                 .audioCodec('opus')
@@ -112,7 +110,9 @@ const ffmpegMergeAvAsync = (agentFileAudio, agentFileVideo, agentFileName) => {
 };
 
 const sideBySideMergeAndUrl = async (agentFileName, userFileName, mergedFileName, storageType) => {
-    await ffmpegSideBySideMergeAsync(agentFileName, userFileName, mergedFileName, storageType);
+    const ffmpegCommand = ffmpeg();
+    await ffmpegSideBySideMergeAsync(ffmpegCommand, agentFileName, userFileName, mergedFileName, storageType);
+    ffmpegCommand.removeAllListeners();
     const userMergedVideoFileData = await fs.readFileSync(`/recording-final/${mergedFileName}.webm`);
     const mergedUrl = await azureUpload.createSasUrl(userMergedVideoFileData, `uploaded-${mergedFileName}.webm`);
     await fs.unlinkSync(`/recording-final/${mergedFileName}.webm`);
@@ -141,7 +141,9 @@ const convertMjrToStandardAv = async (userFileAudio, userFileVideo) => {
 };
 
 const mergeAvAndUpload = async (agentFileAudio, agentFileVideo, agentFileName) => {
-    await ffmpegMergeAvAsync(agentFileAudio, agentFileVideo, agentFileName);
+    const ffmpegCommand = ffmpeg();
+    await ffmpegMergeAvAsync(ffmpegCommand, agentFileAudio, agentFileVideo, agentFileName);
+    ffmpegCommand.removeAllListeners();
     const agentMergedVideoFileData = await fs.readFileSync(`/recording-merged/${agentFileName}.webm`);
     return await azureUpload.createSasUrl(agentMergedVideoFileData, `uploaded-${agentFileName}.webm`);
 };
